@@ -16,7 +16,7 @@ nav a:hover{color:var(--blue)}
 .btn-small{padding:10px 17px}
 .btn-outline{background:white;color:var(--blue);border:1px solid #b9c9ed;box-shadow:none}
 .btn-light{background:white;color:var(--blue);box-shadow:none}
-.hero{padding:78px 0 72px;background:linear-gradient(135deg,#f7faff 0%,#fff 58%,#f6ab09 100%)}
+.hero{padding:78px 0 72px;background:linear-gradient(135deg,#f7faff 0%,#fff 58%,#3b3f6c 100%)}
 .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:64px;align-items:center}
 .badge,.eyebrow{display:inline-block;font-size:12px;letter-spacing:.12em;font-weight:850;color:var(--blue)}
 .badge{letter-spacing:.02em;background:#eaf1ff;border-radius:30px;padding:7px 12px;margin-bottom:18px}
