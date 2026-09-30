@@ -1,6 +1,11 @@
 name = "aprende-mais"
+main = "src/worker.js"
 compatibility_date = "2026-09-29"
-pages_build_output_dir = "."
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
 
 [[d1_databases]]
 binding = "DB"
