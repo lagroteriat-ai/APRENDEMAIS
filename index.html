@@ -3,192 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Aprende+ — plataforma educacional gamificada para estudantes do 1º ao 9º ano.">
   <title>Aprende+ | Aprender hoje, conquistar amanhã</title>
+  <meta name="description" content="Aprende+ é uma plataforma educacional gamificada para estudantes do 1º ao 9º ano.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<header class="header">
+  <div class="container nav">
+    <a class="logo" href="#inicio" aria-label="Aprende+">
+      <span class="logo-mark">+</span><span>Aprende<span>+</span></span>
+    </a>
+    <nav>
+      <a href="#recursos">Recursos</a>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#professores">Professores</a>
+    </nav>
+    <a class="btn btn-small" href="#cadastro">Começar agora</a>
+  </div>
+</header>
 
-  <main>
-    <!-- HERO -->
-    <section class="hero" id="inicio">
-      <div class="hero-background"></div>
-
-      <div class="hero-content container">
-        <div class="hero-copy">
-          <a class="brand" href="#inicio" aria-label="Ir para o início">
-            <span class="brand-icon">+</span>
-            <span class="brand-name">Aprende<span>+</span></span>
-          </a>
-
-          <p class="tagline">APRENDER HOJE.<br>CONQUISTAR AMANHÃ.</p>
-
-          <h1>Seu futuro começa<br>com o <span>conhecimento.</span></h1>
-
-          <p class="hero-description">
-            No Aprende+ você encontra atividades, recursos e apoio para aprender,
-            evoluir e alcançar seus objetivos. Aqui, cada estudante importa!
-          </p>
-
-          <div class="hero-highlights">
-            <div class="highlight">
-              <span class="highlight-icon">▣</span>
-              <span>Apoio<br>pedagógico</span>
-            </div>
-            <div class="highlight">
-              <span class="highlight-icon">●●</span>
-              <span>Professores<br>qualificados</span>
-            </div>
-            <div class="highlight">
-              <span class="highlight-icon">▥</span>
-              <span>Mais<br>conquistas</span>
-            </div>
-          </div>
+<main>
+  <section class="hero" id="inicio">
+    <div class="hero-shape top-shape"></div>
+    <div class="container hero-grid">
+      <div class="hero-text">
+        <div class="brandline"><span class="mini-mark">+</span><div><strong>Aprende<span>+</span></strong><small>APRENDER HOJE, CONQUISTAR AMANHÃ</small></div></div>
+        <h1>Seu futuro começa com o <strong>conhecimento.</strong></h1>
+        <p>No Aprende+ você encontra atividades, recursos e apoio para aprender, evoluir e alcançar seus objetivos. Aqui, cada estudante importa!</p>
+        <div class="hero-points">
+          <span><b>●</b> Apoio pedagógico</span>
+          <span><b>●</b> Professores qualificados</span>
+          <span><b>●</b> Mais conquistas</span>
         </div>
+      </div>
 
-        <div class="hero-visual" aria-hidden="true">
-          <img src="assets/estudante.jpg" alt="" class="student-image">
-        </div>
-
-        <!-- CADASTRO -->
-        <div class="signup-card">
+      <div class="hero-visual">
+        <img src="student_clean.jpg" alt="Estudante representando o Aprende+">
+        <div class="signup-card" id="cadastro">
           <h2>Cadastre-se</h2>
-          <p>Faça parte do Aprende+ e tenha acesso a todo o nosso conteúdo.</p>
-
-          <form id="signupForm">
-            <label class="field">
-              <span class="field-icon">♙</span>
-              <input id="nome" type="text" placeholder="Nome completo" autocomplete="name" required>
-            </label>
-
-            <label class="field">
-              <span class="field-icon">▣</span>
-              <input id="sobrenome" type="text" placeholder="Sobrenome" autocomplete="family-name" required>
-            </label>
-
-            <label class="field">
-              <span class="field-icon">✉</span>
-              <input id="email" type="email" placeholder="E-mail" autocomplete="email" required>
-            </label>
-
-            <button class="btn-primary" type="submit">
-              Começar agora <span>→</span>
-            </button>
-
-            <p id="formMessage" class="form-message" role="status"></p>
+          <p>Faça parte do Aprende+ e tenha acesso ao nosso protótipo.</p>
+          <form id="leadForm">
+            <label><span>Nome completo</span><input id="nome" name="nome" required autocomplete="given-name"></label>
+            <label><span>Sobrenome</span><input id="sobrenome" name="sobrenome" required autocomplete="family-name"></label>
+            <label><span>E-mail</span><input id="email" name="email" type="email" required autocomplete="email"></label>
+            <label><span>WhatsApp / telefone</span><input id="telefone" name="telefone" type="tel" required autocomplete="tel" placeholder="(00) 00000-0000"></label>
+            <label><span>Você é:</span><select id="perfil" name="perfil" required><option value="">Selecione</option><option>Estudante</option><option>Professor(a)</option><option>Responsável</option><option>Gestor(a) escolar</option><option>Outro</option></select></label>
+            <label class="consent"><input id="consentimento" type="checkbox" required><span>Autorizo o registro dos meus dados para contato relacionado ao Aprende+ e ao teste do protótipo.</span></label>
+            <button class="btn form-button" type="submit" id="submitLead">Começar agora <span>→</span></button>
+            <div id="formMessage" class="form-message" role="status"></div>
           </form>
         </div>
       </div>
-
-      <div class="yellow-shape yellow-left"></div>
-      <div class="yellow-shape yellow-right"></div>
-    </section>
-
-    <!-- RECURSOS -->
-    <section class="features-section" id="recursos">
-      <div class="container">
-        <div class="features-grid">
-          <article class="feature-card">
-            <div class="feature-icon orange">▣</div>
-            <h3>Acompanhamento</h3>
-            <p>Uma proposta que permite acompanhar a participação e o desenvolvimento dos estudantes.</p>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-icon blue">●●</div>
-            <h3>Para professores</h3>
-            <p>Recursos pensados para apoiar o trabalho pedagógico e enriquecer as aulas.</p>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-icon green">♿</div>
-            <h3>Acessibilidade</h3>
-            <p>Uma experiência pensada para ser simples, clara e acessível para diferentes perfis de estudantes.</p>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-icon purple">⌁</div>
-            <h3>Jogos educativos</h3>
-            <p>Aprenda conceitos escolares por meio de experiências interativas e desafios.</p>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-icon red">★</div>
-            <h3>Desafios e conquistas</h3>
-            <p>Missões, pontos e conquistas ajudam a tornar o processo de aprendizagem mais envolvente.</p>
-          </article>
-
-          <article class="feature-card">
-            <div class="feature-icon teal">▤</div>
-            <h3>Conteúdo alinhado</h3>
-            <p>Atividades organizadas por componentes e anos escolares, com referência à BNCC.</p>
-          </article>
-        </div>
-
-        <a class="three-steps" href="#como-funciona">
-          <span class="steps-icon">▤</span>
-          <strong>Aprender em três passos</strong>
-          <span class="divider"></span>
-          <span class="steps-description">Uma experiência simples para estudantes, famílias e professores.</span>
-          <span class="arrow">→</span>
-        </a>
-      </div>
-    </section>
-
-    <!-- COMO FUNCIONA -->
-    <section class="content-section" id="como-funciona">
-      <div class="container two-columns">
-        <div>
-          <span class="section-label">COMO FUNCIONA</span>
-          <h2>Aprender pode ser uma experiência.</h2>
-          <p>O Aprende+ transforma conteúdos escolares em atividades, desafios e jogos que aproximam o aprendizado da realidade dos estudantes.</p>
-          <a class="outline-button" href="https://aureaplay-ndghrrkn.manus.space/" target="_blank" rel="noopener noreferrer">Conhecer o protótipo →</a>
-        </div>
-
-        <div class="steps-list">
-          <div class="step-item"><span>01</span><div><h3>Escolha o conteúdo</h3><p>Encontre atividades organizadas por componente e ano escolar.</p></div></div>
-          <div class="step-item"><span>02</span><div><h3>Participe da missão</h3><p>Resolva desafios, jogos e atividades interativas.</p></div></div>
-          <div class="step-item"><span>03</span><div><h3>Conquiste e avance</h3><p>Acompanhe sua evolução e continue aprendendo.</p></div></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- PROFESSORES -->
-    <section class="teacher-section" id="professores">
-      <div class="container teacher-box">
-        <div>
-          <span class="section-label">PARA PROFESSORES</span>
-          <h2>Tecnologia a favor da aprendizagem.</h2>
-          <p>O Aprende+ apoia o trabalho pedagógico com uma experiência mais dinâmica, organizada e próxima da linguagem dos estudantes.</p>
-        </div>
-        <div class="teacher-points">
-          <span>✓ Atividades interativas</span>
-          <span>✓ Organização por ano escolar</span>
-          <span>✓ Desafios por conteúdo</span>
-          <span>✓ Acompanhamento do progresso</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- CTA -->
-    <section class="cta-section">
-      <div class="container cta-content">
-        <span class="section-label">APRENDE+</span>
-        <h2>Vamos transformar a maneira de aprender?</h2>
-        <p>Conheça a proposta e experimente o protótipo do Aprende+.</p>
-        <a class="btn-light" href="https://aureaplay-ndghrrkn.manus.space/" target="_blank" rel="noopener noreferrer">Acessar o protótipo →</a>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <div class="container footer-content">
-      <a class="footer-brand" href="#inicio"><span class="brand-icon">+</span> Aprende<span>+</span></a>
-      <p>Educação que transforma. Aprendizagem que conecta.</p>
-      <small>© <span id="year"></span> Aprende+. Todos os direitos reservados.</small>
     </div>
-  </footer>
+  </section>
 
-  <script src="script.js"></script>
+  <section class="feature-strip" id="recursos">
+    <div class="container feature-grid">
+      <article><div class="feature-icon orange">◫</div><h3>Acompanhamento</h3><p>Uma proposta que permite acompanhar a participação e o desenvolvimento dos estudantes.</p></article>
+      <article><div class="feature-icon blue">●</div><h3>Para professores</h3><p>Recursos pensados para apoiar o trabalho pedagógico e enriquecer as aulas.</p></article>
+      <article><div class="feature-icon teal">♿</div><h3>Acessibilidade</h3><p>Uma experiência simples, clara e acessível para diferentes perfis de estudantes.</p></article>
+      <article><div class="feature-icon purple">⌁</div><h3>Jogos educativos</h3><p>Aprenda conceitos escolares por meio de experiências interativas e desafios.</p></article>
+      <article><div class="feature-icon red">★</div><h3>Desafios e conquistas</h3><p>Missões e conquistas ajudam a tornar o processo de aprendizagem mais envolvente.</p></article>
+      <article><div class="feature-icon cyan">▢</div><h3>Conteúdo alinhado</h3><p>Atividades organizadas por componentes e anos escolares, com referência à BNCC.</p></article>
+    </div>
+  </section>
+
+  <section class="steps-section" id="como-funciona">
+    <div class="container steps-banner">
+      <div class="steps-title"><span>☷</span><strong>Aprender em três passos</strong></div>
+      <div class="divider"></div><p>Uma experiência simples para estudantes, famílias e professores.</p><a href="#passos">→</a>
+    </div>
+    <div class="container steps-content" id="passos">
+      <div><span class="eyebrow">COMO FUNCIONA</span><h2>Aprender pode ser mais simples, interativo e divertido.</h2><p>O Aprende+ combina conteúdo escolar, atividades, desafios e gamificação para criar uma experiência de aprendizagem mais próxima dos estudantes.</p><a class="btn" href="#cadastro">Testar o protótipo</a></div>
+      <div class="step-list">
+        <div class="step"><b>01</b><div><h3>Escolha o conteúdo</h3><p>Selecione o componente e o tema que deseja estudar.</p></div></div>
+        <div class="step"><b>02</b><div><h3>Resolva a missão</h3><p>Participe de atividades, jogos e desafios interativos.</p></div></div>
+        <div class="step"><b>03</b><div><h3>Conquiste e avance</h3><p>Complete missões e acompanhe sua evolução.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="teacher-section" id="professores">
+    <div class="container teacher-box">
+      <div><span class="eyebrow">PARA PROFESSORES</span><h2>Tecnologia a favor da aprendizagem</h2><p>O Aprende+ aproxima conteúdos curriculares da linguagem dos estudantes e oferece recursos para experiências mais dinâmicas.</p></div>
+      <ul><li>Atividades interativas</li><li>Desafios por conteúdo</li><li>Organização por ano escolar</li><li>Acompanhamento do progresso</li></ul>
+    </div>
+  </section>
+
+  <section class="final-cta">
+    <div class="container"><span class="eyebrow">APRENDE+</span><h2>Aprender hoje. Conquistar amanhã.</h2><p>Cadastre-se, conheça a proposta e experimente o protótipo.</p><a class="btn btn-light" href="#cadastro">Começar agora</a></div>
+  </section>
+</main>
+
+<footer><div class="container footer"><div class="logo"><span class="logo-mark">+</span><span>Aprende<span>+</span></span></div><p>Educação que transforma. Aprendizagem que conecta.</p><small>© <span id="year"></span> Aprende+.</small></div></footer>
+<script src="script.js"></script>
 </body>
 </html>

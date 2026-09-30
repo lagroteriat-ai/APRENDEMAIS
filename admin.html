@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aprende+ | Painel de Leads</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <header class="admin-header">
+    <div>
+      <strong>Aprende<span>+</span></strong>
+      <small>Painel de leads</small>
+    </div>
+    <a href="/">Voltar para a página</a>
+  </header>
+
+  <main class="admin-main">
+    <section id="loginBox" class="panel login-panel">
+      <h1>Acesso administrativo</h1>
+      <p>Digite o token administrativo configurado no Cloudflare.</p>
+      <input id="tokenInput" type="password" placeholder="ADMIN_TOKEN" autocomplete="off">
+      <button id="loginButton">Entrar</button>
+      <p id="loginMessage" class="message"></p>
+    </section>
+
+    <section id="dashboard" hidden>
+      <div class="top-row">
+        <div>
+          <h1>Leads do Aprende+</h1>
+          <p>Contatos que preencheram o formulário para testar o protótipo.</p>
+        </div>
+        <div class="actions">
+          <button id="refreshButton" class="secondary">Atualizar</button>
+          <button id="exportButton">Exportar CSV</button>
+          <button id="logoutButton" class="secondary">Sair</button>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat"><span>Total de leads</span><strong id="totalStat">0</strong></div>
+        <div class="stat"><span>Cadastros hoje</span><strong id="todayStat">0</strong></div>
+        <div class="stat"><span>Acessaram o protótipo</span><strong id="accessStat">0</strong></div>
+      </div>
+
+      <section class="panel">
+        <div class="toolbar">
+          <input id="searchInput" type="search" placeholder="Pesquisar nome, e-mail ou telefone...">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th><th>WhatsApp/Telefone</th><th>E-mail</th><th>Perfil</th><th>Cadastro</th><th>Protótipo</th><th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="leadsBody"></tbody>
+          </table>
+        </div>
+        <p id="tableMessage" class="message"></p>
+      </section>
+    </section>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>

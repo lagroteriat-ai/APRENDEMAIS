@@ -1,0 +1,9 @@
+name = "aprende-mais"
+compatibility_date = "2026-09-29"
+pages_build_output_dir = "."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "APRENDEMAIS_LEADS"
+database_id = "COLOQUE_O_ID_DO_SEU_D1_AQUI"
+migrations_dir = "migrations"
