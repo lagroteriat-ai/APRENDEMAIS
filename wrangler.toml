@@ -9,6 +9,6 @@ run_worker_first = ["/api/*"]
 
 [[d1_databases]]
 binding = "DB"
-database_name = "APRENDEMAIS_LEADS"
+database_name = "aprende_leads"
 database_id = "COLOQUE_O_ID_DO_SEU_D1_AQUI"
 migrations_dir = "migrations"
