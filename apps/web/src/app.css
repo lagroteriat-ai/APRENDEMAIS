@@ -1,0 +1,240 @@
+/* Estilos do app (a base, os tokens e os componentes vêm de @aprendemais/ui). Prefixo .web-. */
+
+.web-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--am-space-scale-4);
+  min-height: var(--am-size-target-min);
+  padding-block: var(--am-space-scale-3);
+}
+
+.web-logo {
+  color: var(--am-color-brand-navy);
+  font-size: var(--am-typography-size-xl);
+  font-weight: var(--am-typography-weight-black);
+  text-decoration: none;
+}
+
+.web-cabecalho-logado {
+  background: var(--am-color-brand-navy);
+}
+
+.web-cabecalho-logado .web-logo {
+  color: var(--am-color-neutral-white);
+}
+
+.web-titulo:focus {
+  outline: none; /* destino de foco programático ao trocar de tela; não é um controle */
+}
+
+.web-subtitulo {
+  color: var(--am-color-neutral-muted);
+}
+
+.web-ajuda {
+  min-height: 1.5em;
+  margin: var(--am-space-scale-1) 0 0;
+  color: var(--am-color-neutral-muted);
+  font-size: var(--am-typography-size-sm);
+}
+
+.web-carregando {
+  display: flex;
+  align-items: center;
+  gap: var(--am-space-scale-3);
+  color: var(--am-color-neutral-muted);
+}
+
+.web-separador {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: var(--am-border-width-thin) solid var(--am-color-neutral-line);
+}
+
+.web-voltar {
+  align-self: flex-start;
+  min-height: var(--am-size-target-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--am-color-brand-blue);
+  font: inherit;
+  font-weight: var(--am-typography-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+}
+
+.web-passo {
+  margin: 0 0 var(--am-space-scale-2);
+  color: var(--am-color-neutral-muted);
+  font-size: var(--am-typography-size-sm);
+}
+
+.web-progresso {
+  width: 100%;
+  height: 0.5rem;
+  accent-color: var(--am-color-primary-default);
+}
+
+.web-conjunto {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.web-conjunto > legend {
+  margin-bottom: var(--am-space-scale-2);
+  padding: 0;
+  font-weight: var(--am-typography-weight-semibold);
+}
+
+.web-erro-conjunto {
+  margin-top: var(--am-space-scale-2);
+}
+
+.web-bloco p {
+  margin-top: var(--am-space-scale-4);
+}
+
+.web-duas-colunas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--am-space-scale-3);
+}
+
+.web-apelido {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--am-space-scale-3);
+  max-width: none;
+  font-size: var(--am-typography-size-xl);
+}
+
+.web-bloco h2 {
+  margin: var(--am-space-scale-4) 0 var(--am-space-scale-2);
+  font-size: var(--am-typography-size-h4);
+}
+
+.web-bloco h2:first-child {
+  margin-top: 0;
+}
+
+.web-bloco ul {
+  margin: 0;
+  padding-inline-start: var(--am-space-scale-5);
+}
+
+.web-lista-sem-marcador {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cartão que é um botão (T15): alvo ≥ 44px, foco visível herdado do base.css. */
+.web-cartao-acao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: max(var(--am-size-target-min), 3.5rem);
+  padding: var(--am-space-scale-4) var(--am-space-scale-5);
+  border: var(--am-border-width-default) solid var(--am-color-neutral-border);
+  border-radius: calc(var(--am-radius-lg) + var(--am-radius-extra));
+  background: var(--am-color-neutral-surface);
+  color: var(--am-color-neutral-text);
+  font: inherit;
+  font-weight: var(--am-typography-weight-semibold);
+  text-align: start;
+  cursor: pointer;
+}
+
+.web-cartao-acao:hover {
+  background: var(--am-color-primary-tint);
+}
+
+/* Menu do usuário (disclosure simples) */
+.web-menu {
+  position: relative;
+}
+
+.web-menu__botao {
+  min-height: var(--am-size-target-min);
+  padding: var(--am-space-scale-2) var(--am-space-scale-3);
+  border: var(--am-border-width-default) solid var(--am-color-neutral-white);
+  border-radius: calc(var(--am-radius-md) + var(--am-radius-extra));
+  background: transparent;
+  color: var(--am-color-neutral-white);
+  font: inherit;
+  font-weight: var(--am-typography-weight-semibold);
+  cursor: pointer;
+}
+
+.web-menu__lista {
+  position: absolute;
+  inset-inline-end: 0;
+  z-index: var(--am-z-index-dropdown);
+  min-width: 12rem;
+  margin: var(--am-space-scale-2) 0 0;
+  padding: var(--am-space-scale-2);
+  border: var(--am-border-width-thin) solid var(--am-color-neutral-border);
+  border-radius: calc(var(--am-radius-md) + var(--am-radius-extra));
+  background: var(--am-color-neutral-bg);
+  box-shadow: var(--am-shadow-md);
+  list-style: none;
+}
+
+.web-menu__lista button {
+  display: block;
+  width: 100%;
+  min-height: var(--am-size-target-min);
+  padding: var(--am-space-scale-2) var(--am-space-scale-3);
+  border: 0;
+  border-radius: var(--am-radius-sm);
+  background: none;
+  color: var(--am-color-neutral-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.web-menu__lista button:hover {
+  background: var(--am-color-primary-tint);
+}
+
+/* Painel do modo simulado (só em desenvolvimento) */
+.web-painel-mock {
+  position: fixed;
+  inset-block-end: var(--am-space-scale-2);
+  inset-inline-end: var(--am-space-scale-2);
+  z-index: var(--am-z-index-toast);
+  max-width: min(26rem, calc(100vw - 2rem));
+  max-height: 70vh;
+  overflow: auto;
+  padding: var(--am-space-scale-3);
+  border: var(--am-border-width-default) solid var(--am-color-brand-navy);
+  border-radius: var(--am-radius-md);
+  background: var(--am-color-accent-tint);
+  color: var(--am-color-neutral-text);
+  font-size: var(--am-typography-size-sm);
+}
+
+.web-painel-mock summary {
+  cursor: pointer;
+  font-weight: var(--am-typography-weight-bold);
+}
+
+.web-painel-mock h2 {
+  margin: var(--am-space-scale-3) 0 var(--am-space-scale-1);
+  font-size: var(--am-typography-size-md);
+}
+
+.web-painel-mock ul {
+  margin: 0;
+  padding-inline-start: var(--am-space-scale-4);
+}

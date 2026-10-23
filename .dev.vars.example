@@ -1,0 +1,4 @@
+# Landing legada (wrangler dev na raiz). Copie para .dev.vars (ignorado pelo git) e preencha.
+ADMIN_TOKEN=
+LEAD_SECRET=
+TURNSTILE_SECRET=

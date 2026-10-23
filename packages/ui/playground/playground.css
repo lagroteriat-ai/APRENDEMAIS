@@ -1,0 +1,40 @@
+/* Só para a página de exemplo (não faz parte do pacote). */
+.pg-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--am-space-scale-4);
+  padding-block: var(--am-space-scale-6);
+  border-top: var(--am-border-width-thin) solid var(--am-color-neutral-line);
+}
+
+.pg-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: var(--am-space-scale-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pg-swatch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--am-space-scale-1);
+  font-size: var(--am-typography-size-xs);
+}
+
+.pg-swatch__cor {
+  height: 2.5rem;
+  border: var(--am-border-width-thin) solid var(--am-color-neutral-border);
+  border-radius: var(--am-radius-sm);
+}
+
+.pg-header {
+  padding-block: var(--am-space-scale-4);
+  background: var(--am-color-brand-navy);
+  color: var(--am-color-neutral-white);
+}
+
+.pg-header h1 {
+  color: inherit;
+}

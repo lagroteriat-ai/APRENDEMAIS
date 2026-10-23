@@ -1,8 +1,7 @@
-export async function onRequestGet(context) {
-  const auth = context.request.headers.get('Authorization') || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+import { adminAutorizado } from '../../_lib/seguranca.js';
 
-  if (!context.env.ADMIN_TOKEN || token !== context.env.ADMIN_TOKEN) {
+export async function onRequestGet(context) {
+  if (!(await adminAutorizado(context.request, context.env))) {
     return json({ ok: false, message: 'Não autorizado.' }, 401);
   }
 
@@ -42,14 +41,13 @@ export async function onRequestGet(context) {
 
     return json({ ok: true, leads: result.results || [], stats: stats || {} });
   } catch (error) {
-    return json({ ok: false, message: 'Erro ao consultar leads.', detail: error.message }, 500);
+    console.error('admin/leads GET falhou:', error);
+    return json({ ok: false, message: 'Erro ao consultar leads.' }, 500);
   }
 }
 
 export async function onRequestDelete(context) {
-  const auth = context.request.headers.get('Authorization') || '';
-  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!context.env.ADMIN_TOKEN || token !== context.env.ADMIN_TOKEN) {
+  if (!(await adminAutorizado(context.request, context.env))) {
     return json({ ok: false, message: 'Não autorizado.' }, 401);
   }
 
@@ -61,7 +59,8 @@ export async function onRequestDelete(context) {
     await context.env.DB.prepare('DELETE FROM leads WHERE id = ?').bind(id).run();
     return json({ ok: true });
   } catch (error) {
-    return json({ ok: false, message: 'Não foi possível excluir o lead.', detail: error.message }, 500);
+    console.error('admin/leads DELETE falhou:', error);
+    return json({ ok: false, message: 'Não foi possível excluir o lead.' }, 500);
   }
 }
 

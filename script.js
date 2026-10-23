@@ -24,7 +24,8 @@ form.addEventListener('submit', async event => {
     email: document.getElementById('email').value.trim(),
     telefone: document.getElementById('telefone').value.trim(),
     perfil: document.getElementById('perfil').value,
-    consentimento: document.getElementById('consentimento').checked
+    consentimento: document.getElementById('consentimento').checked,
+    turnstileToken: (form.querySelector('[name="cf-turnstile-response"]') || {}).value || ''
   };
 
   try {
@@ -38,7 +39,7 @@ form.addEventListener('submit', async event => {
 
     try {
       await fetch('/api/prototype-access', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leadId: data.leadId })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leadId: data.leadId, accessToken: data.accessToken })
       });
     } catch (_) {}
 
@@ -50,5 +51,6 @@ form.addEventListener('submit', async event => {
     message.className = 'form-message error';
     submitButton.disabled = false;
     submitButton.innerHTML = 'Começar agora <span>→</span>';
+    if (window.turnstile) window.turnstile.reset(); // token é de uso único
   }
 });

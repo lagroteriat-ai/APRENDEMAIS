@@ -1,0 +1,37 @@
+{
+  "name": "aprendemais",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Aprende+ — plataforma educacional (monorepo) e landing de leads legada.",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @aprendemais/api --filter @aprendemais/web run dev",
+    "dev:legacy": "pnpm build:legacy && wrangler dev",
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --if-present run typecheck && tsc -p tests/e2e",
+    "test": "pnpm -r --if-present run test && pnpm test:legado",
+    "test:ci": "pnpm -r --if-present run test --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml && pnpm test:legado",
+    "test:legado": "node --test \"tests/legado/*.test.mjs\"",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "build:legacy": "node scripts/build-legacy.mjs",
+    "build": "pnpm build:legacy && pnpm -r --if-present run build && node scripts/verificar-dist.mjs",
+    "check:wrangler": "pnpm build:legacy && wrangler deploy --dry-run --outdir .wrangler/dry --env staging && wrangler deploy --dry-run --outdir .wrangler/dry --env production && pnpm -r --if-present run check:wrangler",
+    "check:placeholders": "node scripts/check-placeholders.mjs"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "catalog:",
+    "@eslint/js": "catalog:",
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "globals": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:",
+    "wrangler": "catalog:"
+  }
+}

@@ -49,6 +49,7 @@
             <label><span>WhatsApp / telefone</span><input id="telefone" name="telefone" type="tel" required autocomplete="tel" placeholder="(00) 00000-0000"></label>
             <label><span>Você é:</span><select id="perfil" name="perfil" required><option value="">Selecione</option><option>Estudante</option><option>Professor(a)</option><option>Responsável</option><option>Gestor(a) escolar</option><option>Outro</option></select></label>
             <label class="consent"><input id="consentimento" type="checkbox" required><span>Autorizo o registro dos meus dados para contato relacionado ao Aprende+ e ao teste do protótipo.</span></label>
+            <div class="cf-turnstile" data-sitekey="COLOQUE_TURNSTILE_SITEKEY" data-language="pt-br"></div>
             <button class="btn form-button" type="submit" id="submitLead">Começar agora <span>→</span></button>
             <div id="formMessage" class="form-message" role="status"></div>
           </form>
@@ -96,6 +97,7 @@
 </main>
 
 <footer><div class="container footer"><div class="logo"><span class="logo-mark">+</span><span>Aprende<span>+</span></span></div><p>Educação que transforma. Aprendizagem que conecta.</p><small>© <span id="year"></span> Aprende+.</small></div></footer>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="script.js"></script>
 </body>
 </html>

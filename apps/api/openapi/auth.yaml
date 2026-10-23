@@ -1,0 +1,1371 @@
+openapi: 3.1.0
+info:
+  title: Aprende+ — API de cadastro, consentimento e sessão
+  version: 1.0.0
+  summary: Contrato v1.0 (S1-BE-02). Sem implementação; FE e QA trabalham contra ele com mock.
+  description: |
+    Base `/api/v1` (ADR-001 §3). Respostas: sucesso `{ ok: true, data, meta? }`; erro `{ ok: false, error: { code, message, details? } }`.
+    `message` é pt-BR e sem detalhe interno (RQ-32); o FE mostra o texto do próprio catálogo, guiado por `code` e `details[].path`.
+    Toda resposta traz `X-Request-Id`. IDs são ULID; datas ISO-8601 UTC com `Z`; JSON em camelCase.
+    Requisições que alteram estado exigem `Content-Type: application/json` e `Origin` na allowlist; senão 403 `FORBIDDEN` sem efeito (SR-04).
+    Toda resposta de `/api/v1` leva `Cache-Control: no-store` (SR-19). Corpo com campo desconhecido → 400 `VALIDATION_ERROR` e nada é gravado (SR-03).
+
+    ## Autenticação
+    Sessão opaca no cookie `__Host-sid` (HttpOnly, Secure, SameSite=Lax, Path=/). O papel **nunca** vem do cookie: status, papéis e vínculos
+    são lidos do banco em toda requisição (RQ-35). Tokens de link (responsável, recuperação, convite, confirmação) vão **no corpo** de POST/PUT,
+    nunca em URL da API nem em log (RQ-32); a página do FE lê `?t=` e limpa a URL. O servidor guarda só o hash do token.
+
+    Valores de `x-acesso` por operação: `publico` · `token-link` (token no corpo) · `sessao-pendente` (cookie de escopo restrito) ·
+    `sessao-completa` (qualquer papel) · `sessao-completa:<papel>`.
+
+    ## Decisões de contrato (DC) — SEG-02 e UX confirmam
+    - **DC-01 Sessão pendente.** Conta `pendente_*` que cria cadastro ou faz login correto recebe cookie de **escopo restrito**: só vale para
+      `GET /me`, `POST /cadastro/pendencia/reenvio`, `PUT /cadastro/pendencia/email` e `DELETE /sessoes/atual`. Qualquer outra rota → 403 `FORBIDDEN`.
+      Permite T05 sobreviver a recarregar a página sem guardar dados de menor no navegador. O aluno **não entra** (RQ-03).
+    - **DC-02 Login de conta não ativa** devolve 200 com `status` e `escopoSessao` (`pendente` ou `nenhuma`), só depois de usuário+senha corretos (DU-06).
+    - **DC-03 Apelido assinado.** O apelido só nasce no servidor: `GET /cadastro/apelido-sugerido` devolve um apelido **livre naquele instante** com
+      `apelidoToken` (HMAC, validade 30 min). O cadastro envia só o `apelidoToken`; não há como testar apelidos arbitrários (AB1/AB7). Sem reserva:
+      se alguém o ocupar antes (corrida rara) → 409 `CONFLICT` com `details[{path:"apelidoToken",code:"APELIDO_EM_USO"}]` e o FE sorteia outro.
+    - **DC-04 Campo `email` do cadastro**: o servidor calcula a idade (mês/ano; ambíguo na virada dos 18 = menor, COORD). Se menor, `email` é o do
+      **responsável** e não se guarda e-mail do aluno; se maior, é o do próprio aluno. A resposta traz `menor`.
+    - **DC-05 Sem enumeração por e-mail** (AB1). Se o e-mail de um aluno ≥18 já tem conta, `cadastrarAluno` e `corrigirEmailPendencia` respondem
+      **igual a um sucesso**: não criam/alteram nada, avisam o dono por e-mail ("você já tem conta") e, no cadastro, emitem sessão pendente "isca"
+      (sem usuário; `me`, reenvio e correção respondem como sucesso sem efeito). E-mail de **responsável** não é único. Só `cadastrarProfessor` devolve
+      409 `EMAIL_EM_USO` (o portador do convite é o dono do e-mail).
+    - **DC-06 Turnstile e limites** (SR-09, SR-13). Rotas públicas aceitam `turnstileToken`. Login: 3 falhas por conta **ou** IP em 15 min (contadas
+      também para identificadores inexistentes) → 428 `DESAFIO_REQUERIDO` e o FE reenvia com o token; 10 falhas → 429 por 15 min. Cadastro e
+      recuperação: política de SEG, mesma mecânica. "Sortear outro": ≤10 por IP em 10 min → 429.
+    - **DC-07 Papel ativo** (T15) fica na sessão e é revalidado no banco; `/me` devolve `papeis` e `papelAtivo`.
+    - **DC-08 Prazos** (COORD, DU-01..07): link de consentimento 7 d, reenvio ≤3/dia; link "gerenciar" 30 d, renovável por e-mail; recuperação 30 min,
+      uso único, encerra todas as sessões; convite de professor 72 h, uso único, preso a e-mail+escola; confirmação de e-mail 7 d (premissa).
+      Pré-cadastro sem resposta em 7 d é apagado (RQ-05). Senha 8–128, fora da lista de ~10 mil comuns, diferente do apelido.
+    - **DC-09 Idempotência.** `Idempotency-Key` (UUID) **obrigatório** em `cadastrarAluno`, `cadastrarProfessor` e `concederConsentimento`; repetição
+      devolve a resposta guardada (24 h); mesma chave com corpo diferente → 409 `IDEMPOTENCY_CONFLICT`. Demais operações são idempotentes por desenho.
+    - **DC-10 Apelido é privado (PEN-023).** O apelido é o login do aluno e **nunca é exibido a outros usuários**; o ranking (contrato futuro) usará um
+      `apelidoPublico` distinto, sorteado só no opt-in (RQ-21/22), sem coluna nova agora. O professor vê o apelido apenas nas turmas que cria/vincula.
+      "PIN de turma" **descartado** nesta versão (PEN-024): não há login sem senha. Gestor/admin: sem rota de dados no Sprint 1; antes de qualquer rota
+      de admin haverá 2º fator (PEN-025), sinalizado por novo valor de `escopoSessao` (mudança aditiva, versionada).
+    - **DC-11 Sessão rotacionada.** `entrar` e `escolherPapel` emitem **novo** valor de cookie e invalidam o anterior (SR-05, T04). Troca de senha,
+      de papel e revogação de consentimento encerram as demais sessões do usuário na hora (SR-06, `sessao_versao`). Quem abre um link de consentimento
+      já com a sessão do próprio aluno recebe 403 `FORBIDDEN` (AB3: o aluno não se autoriza).
+
+    ## Matriz de papéis
+    | Operação | Público | Token de link | Sessão pendente | Aluno | Responsável | Professor | Gestor | Admin |
+    |---|---|---|---|---|---|---|---|---|
+    | obterAvisosVigentes, sortearApelido, cadastrarAluno, entrar, solicitarRecuperacao | ✔ | | | | | | | |
+    | confirmarEmail, *Consentimento* (consulta/concessão/recusa/gestão), recuperação (consulta/nova senha), convite/cadastro de professor | | ✔ | | | | | | |
+    | reenviarPendencia, corrigirEmailPendencia | | | ✔ | | | | | |
+    | obterMe, sair | | | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ |
+    | escolherPapel | | | | ✔ | ✔ | ✔ | ✔ | ✔ |
+
+    Atribuição de papéis: `aluno` por auto-cadastro; `professor` só por convite (emitido por seed/CLI no Sprint 1); `gestor` e `admin` só por
+    seed/CLI, nunca por auto-cadastro (ADR §4, RQ-34); `responsavel` age por link, **sem login** nesta versão (DU-02). Um usuário pode acumular papéis.
+    Permissões sobre dados (progresso, ranking, exportação…) seguem `docs/seguranca/lgpd-requisitos.md` §8 e entram nos contratos das próximas versões.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+servers:
+  - url: /api/v1
+    description: Mesmo host da SPA (sem CORS em produção, ADR-002). Local — Worker da API atrás do proxy do Vite.
+tags:
+  - { name: Avisos, description: 'Versões vigentes dos avisos de privacidade.' }
+  - { name: Cadastro, description: 'Cadastro de aluno, pendência e confirmação de e-mail.' }
+  - { name: Consentimento, description: 'Autorização, recusa, gestão e revogação pelo responsável (por link).' }
+  - { name: Sessão, description: 'Login, logout, sessão atual e papel ativo.' }
+  - { name: Recuperação, description: 'Recuperação de acesso por link.' }
+  - { name: Professor, description: 'Convite e cadastro de professor.' }
+security: []
+paths:
+  /avisos-privacidade/vigentes:
+    get:
+      tags: [Avisos]
+      operationId: obterAvisosVigentes
+      summary: Versões vigentes dos avisos de privacidade (aluno, responsável, professor)
+      description: O FE devolve `versao` no aceite (RQ-06). O texto é de PED-02; pode ser servido aqui ou pelo FE, mas a versão é sempre desta rota.
+      x-acesso: publico
+      responses:
+        '200':
+          description: Avisos vigentes.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/AvisosVigentes' }
+              example:
+                ok: true
+                data:
+                  aluno: { versao: aluno-2026-10-v1, publicadoEm: '2026-10-22T00:00:00.000Z' }
+                  responsavel: { versao: responsavel-2026-10-v1, publicadoEm: '2026-10-22T00:00:00.000Z' }
+                  professor: { versao: professor-2026-10-v1, publicadoEm: '2026-10-22T00:00:00.000Z' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /cadastro/apelido-sugerido:
+    get:
+      tags: [Cadastro]
+      operationId: sortearApelido
+      summary: Sorteia um apelido (botão "Sortear outro", T02)
+      description: 'Devolve um apelido livre e o `apelidoToken` assinado que o cadastro exige (DC-03). Não reserva o apelido. Limite: ≤10 por IP em 10 min, depois 429 (DC-06).'
+      x-acesso: publico
+      responses:
+        '200':
+          description: Apelido sugerido.
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/ApelidoSugerido' }
+              example:
+                ok: true
+                data: { apelido: LeaoAzul42, apelidoToken: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM, expiraEm: '2026-10-22T14:33:00.000Z' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /cadastro/aluno:
+    post:
+      tags: [Cadastro]
+      operationId: cadastrarAluno
+      summary: Cadastra um aluno (T02–T04); se menor de 18, pede autorização ao responsável
+      description: |
+        Cria a conta em `pendente_responsavel` (menor) ou `pendente_email` (≥18) e envia E1 ou E3. Antes do consentimento guarda-se só o mínimo (RQ-03).
+        Emite cookie de **sessão pendente** (DC-01). O `email` é do responsável se a idade calculada for < 18 (DC-04). E-mail já cadastrado de aluno ≥18
+        não é revelado (DC-05). Campos como `papel` ou `status` não existem no corpo; qualquer campo extra → 400 (SR-03).
+      x-acesso: publico
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastroAlunoRequest' }
+            examples:
+              menor:
+                summary: Menor de 18 (email = responsável)
+                value:
+                  apelidoToken: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM
+                  nascimento: '2014-05'
+                  anoEscolar: EF5
+                  email: mae.exemplo@gmail.com
+                  senha: bola-nuvem-sete
+                  aviso: { versao: aluno-2026-10-v1 }
+              maior:
+                summary: 18 anos ou mais (email = próprio)
+                value:
+                  apelidoToken: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM
+                  nascimento: '2005-11'
+                  anoEscolar: EM3
+                  email: aluno.exemplo@gmail.com
+                  senha: cafe-lua-treze
+                  aviso: { versao: aluno-2026-10-v1 }
+      responses:
+        '201':
+          description: Conta pendente criada.
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+            Set-Cookie: { $ref: '#/components/headers/SetCookieSessao' }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/CadastroAlunoResultado' }
+              example:
+                ok: true
+                data:
+                  usuario: { id: 01JC8Z3K5Q7W2X4V6N8M0P1R2S, apelido: LeaoAzul42 }
+                  status: pendente_responsavel
+                  menor: true
+                  pendencia:
+                    tipo: responsavel
+                    emailMascarado: ma***@gmail.com
+                    expiraEm: '2026-10-29T14:03:00.000Z'
+                    proximoReenvioEm: '2026-10-22T14:08:00.000Z'
+        '400':
+          $ref: '#/components/responses/Erro400'
+        '409':
+          description: Apelido ocupado numa corrida rara (`CONFLICT`) ou chave de idempotência reutilizada com outro corpo (`IDEMPOTENCY_CONFLICT`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErroResposta' }
+              examples:
+                apelido:
+                  value:
+                    ok: false
+                    error: { code: CONFLICT, message: Esse apelido já existe., details: [{ path: apelidoToken, code: APELIDO_EM_USO }] }
+                idempotencia:
+                  value:
+                    ok: false
+                    error: { code: IDEMPOTENCY_CONFLICT, message: Esta chave já foi usada com outro conteúdo. }
+        '428': { $ref: '#/components/responses/Erro428' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /cadastro/pendencia/reenvio:
+    post:
+      tags: [Cadastro]
+      operationId: reenviarPendencia
+      summary: Reenvia o e-mail do responsável (E1) ou de confirmação (E3) — T05
+      description: Gera novo link e invalida o anterior. Máximo 3 por dia; acima disso 429 com `Retry-After`.
+      x-acesso: sessao-pendente
+      security: [{ sessao: [] }]
+      responses:
+        '202':
+          description: Reenviado.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/Pendencia' }
+              example:
+                ok: true
+                data: { tipo: responsavel, emailMascarado: ma***@gmail.com, expiraEm: '2026-10-29T14:10:00.000Z', proximoReenvioEm: '2026-10-22T14:15:00.000Z' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /cadastro/pendencia/email:
+    put:
+      tags: [Cadastro]
+      operationId: corrigirEmailPendencia
+      summary: Corrige o e-mail da pendência (responsável ou próprio) — T05 "Corrigir"
+      description: Renova o link e invalida o anterior; reenvia E1/E3 ao novo endereço. Conta que não está pendente → 403. Se o e-mail já pertence a outra conta ≥18, responde como sucesso, sem alterar nada, e avisa o dono (DC-05).
+      x-acesso: sessao-pendente
+      security: [{ sessao: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              additionalProperties: false
+              properties:
+                email: { $ref: '#/components/schemas/Email' }
+            example: { email: pai.exemplo@gmail.com }
+      responses:
+        '200':
+          description: E-mail corrigido e novo link enviado.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/Pendencia' }
+              example:
+                ok: true
+                data: { tipo: responsavel, emailMascarado: pa***@gmail.com, expiraEm: '2026-10-29T14:20:00.000Z', proximoReenvioEm: '2026-10-22T14:25:00.000Z' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /email/confirmacao:
+    post:
+      tags: [Cadastro]
+      operationId: confirmarEmail
+      summary: Confirma o e-mail de aluno ≥18 ou professor (T12)
+      description: Uso único. Token inválido, expirado ou usado → 400 `TOKEN_INVALIDO` (mesma resposta nos três casos). Não inicia sessão; o usuário vai a T01.
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM }
+      responses:
+        '200':
+          description: E-mail confirmado; conta `ativa`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: object
+                        required: [status]
+                        properties:
+                          status: { const: ativa }
+              example: { ok: true, data: { status: ativa } }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /consentimentos/consulta:
+    post:
+      tags: [Consentimento]
+      operationId: consultarPedidoConsentimento
+      summary: O responsável abre o link do e-mail E1 e vê o pedido (T06)
+      description: |
+        Apresenta o pedido sem alterá-lo. Em `POST` só para manter o token fora da URL. Não expõe dados do aluno além do apelido.
+        `rankingDisponivel` é falso no Sprint 1 (a FE oculta o bloco, RQ-21).
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM }
+      responses:
+        '200':
+          description: Pedido pendente.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/PedidoConsentimento' }
+              example:
+                ok: true
+                data:
+                  apelido: LeaoAzul42
+                  aviso: { versao: responsavel-2026-10-v1, publicadoEm: '2026-10-22T00:00:00.000Z' }
+                  rankingDisponivel: false
+                  expiraEm: '2026-10-29T14:03:00.000Z'
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /consentimentos/concessao:
+    post:
+      tags: [Consentimento]
+      operationId: concederConsentimento
+      summary: O responsável autoriza (T06 → T07 "Autorizado")
+      description: |
+        Registra consentimento específico (nome do responsável, versão do aviso, data) e ativa a conta; envia E2 com o link "gerenciar". O ranking só
+        pode ser aceito se `rankingDisponivel` (padrão `false`, RQ-21). Token de uso único.
+      x-acesso: token-link
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ConcessaoRequest' }
+            example:
+              token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM
+              nomeResponsavel: Maria da Silva
+              declaracao: true
+              aviso: { versao: responsavel-2026-10-v1 }
+              rankingAutorizado: false
+      responses:
+        '200':
+          description: Autorizado; conta `ativa`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/ConsentimentoRegistrado' }
+              example:
+                ok: true
+                data: { resultado: autorizado, protocolo: 01JC8Z4M2D9E5F7G1H3J5K7M9N, apelido: LeaoAzul42, registradoEm: '2026-10-22T15:00:00.000Z' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '403':
+          description: 'A requisição trouxe a sessão do próprio aluno (`FORBIDDEN`): o aluno não se autoriza (DC-11, AB3).'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErroResposta' }
+              example: { ok: false, error: { code: FORBIDDEN, message: Você não tem acesso a esta página. } }
+        '409':
+          description: Chave de idempotência reutilizada com outro corpo (`IDEMPOTENCY_CONFLICT`).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErroResposta' }
+              example: { ok: false, error: { code: IDEMPOTENCY_CONFLICT, message: Esta chave já foi usada com outro conteúdo. } }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /consentimentos/recusa:
+    post:
+      tags: [Consentimento]
+      operationId: recusarConsentimento
+      summary: O responsável não autoriza (T06 → T07 "Recusado")
+      description: Apaga o pré-cadastro do aluno e o e-mail do responsável na hora (RQ-05). Sem reuso do e-mail. Token de uso único.
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM }
+      responses:
+        '200':
+          description: Recusado e apagado.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: object
+                        required: [resultado]
+                        properties:
+                          resultado: { const: recusado }
+              example: { ok: true, data: { resultado: recusado } }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /consentimentos/gestao/consulta:
+    post:
+      tags: [Consentimento]
+      operationId: consultarGestaoConsentimento
+      summary: Abre a gestão da autorização pelo link do e-mail E2 (T08)
+      description: Link de 30 dias. Expirado → 400 `TOKEN_INVALIDO`; use `solicitarNovoLinkGestao`.
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM }
+      responses:
+        '200':
+          description: Estado atual da autorização.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/GestaoConsentimento' }
+              example:
+                ok: true
+                data:
+                  apelido: LeaoAzul42
+                  situacao: autorizada
+                  autorizadoEm: '2026-10-22T15:00:00.000Z'
+                  rankingAutorizado: false
+                  rankingDisponivel: false
+                  exclusaoPrevistaAte: null
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /consentimentos/gestao/ranking:
+    put:
+      tags: [Consentimento]
+      operationId: definirRankingConsentimento
+      summary: Liga ou desliga a presença do apelido no ranking (T08, opt-in RQ-21)
+      description: Idempotente. Desligar remove o aluno das listas. Se `rankingDisponivel` for falso, ligar → 400 `VALIDATION_ERROR` (`RANKING_INDISPONIVEL`).
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, rankingAutorizado]
+              additionalProperties: false
+              properties:
+                token: { $ref: '#/components/schemas/Token' }
+                rankingAutorizado: { type: boolean }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM, rankingAutorizado: false }
+      responses:
+        '200':
+          description: Preferência salva.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/GestaoConsentimento' }
+              example:
+                ok: true
+                data:
+                  apelido: LeaoAzul42
+                  situacao: autorizada
+                  autorizadoEm: '2026-10-22T15:00:00.000Z'
+                  rankingAutorizado: false
+                  rankingDisponivel: false
+                  exclusaoPrevistaAte: null
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /consentimentos/gestao/revogacao:
+    post:
+      tags: [Consentimento]
+      operationId: revogarConsentimento
+      summary: O responsável retira a autorização (T08 → confirmação com protocolo)
+      description: |
+        1 clique + 1 confirmação no FE, sem login (RQ-07). A conta passa a `suspensa_exclusao` na hora, todas as sessões do aluno são encerradas e os
+        dados são apagados em até 15 dias (RQ-14). Idempotente: repetir devolve o mesmo `protocolo`.
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM }
+      responses:
+        '200':
+          description: Revogado.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/ConsentimentoRegistrado' }
+              example:
+                ok: true
+                data: { resultado: revogado, protocolo: 01JC8Z5P3E0F6G8H2J4K6M8N0Q, apelido: LeaoAzul42, registradoEm: '2026-10-23T09:00:00.000Z', exclusaoPrevistaAte: '2026-11-07T09:00:00.000Z' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /consentimentos/gestao/novo-link:
+    post:
+      tags: [Consentimento]
+      operationId: solicitarNovoLinkGestao
+      summary: Pede novo link de gestão quando o anterior expirou (renovação por e-mail)
+      description: |
+        Aceita o token expirado (reconhecido pelo hash) e envia novo link ao e-mail do responsável já registrado. Resposta **sempre 202** idêntica,
+        inclusive para token desconhecido (sem enumeração). Limite de frequência por IP e por consentimento.
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM }
+      responses:
+        '202': { $ref: '#/components/responses/Aceito' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /sessoes:
+    post:
+      tags: [Sessão]
+      operationId: entrar
+      summary: Login com apelido ou e-mail e senha (T01)
+      description: |
+        Credenciais inválidas → 401 `UNAUTHENTICATED` genérico, com o **mesmo tempo** de resposta para conta inexistente (DU-06). Credenciais corretas →
+        200 com `status`. `ativa`: cookie de sessão completa. `pendente_*`: cookie de escopo restrito (DC-01/02). `suspensa_exclusao`: sem cookie.
+        Troca de sessão anterior no mesmo navegador. Turnstile conforme DC-06.
+      x-acesso: publico
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+            example: { identificador: LeaoAzul42, senha: bola-nuvem-sete }
+      responses:
+        '200':
+          description: Credenciais corretas.
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+            Set-Cookie: { $ref: '#/components/headers/SetCookieSessao' }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/LoginResultado' }
+              examples:
+                ativa:
+                  value:
+                    ok: true
+                    data:
+                      status: ativa
+                      escopoSessao: completa
+                      me:
+                        id: 01JC8Z3K5Q7W2X4V6N8M0P1R2S
+                        status: ativa
+                        escopoSessao: completa
+                        apelido: LeaoAzul42
+                        nome: null
+                        email: null
+                        papeis: [aluno]
+                        papelAtivo: aluno
+                        anoEscolar: EF5
+                        escola: null
+                        pendencia: null
+                pendente:
+                  value:
+                    ok: true
+                    data:
+                      status: pendente_responsavel
+                      escopoSessao: pendente
+                      me:
+                        id: 01JC8Z3K5Q7W2X4V6N8M0P1R2S
+                        status: pendente_responsavel
+                        escopoSessao: pendente
+                        apelido: LeaoAzul42
+                        nome: null
+                        email: null
+                        papeis: []
+                        papelAtivo: null
+                        anoEscolar: null
+                        escola: null
+                        pendencia: { tipo: responsavel, emailMascarado: ma***@gmail.com, expiraEm: '2026-10-29T14:03:00.000Z', proximoReenvioEm: '2026-10-22T14:08:00.000Z' }
+                emExclusao:
+                  value: { ok: true, data: { status: suspensa_exclusao, escopoSessao: nenhuma, me: null } }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401Login' }
+        '428': { $ref: '#/components/responses/Erro428' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /sessoes/atual:
+    delete:
+      tags: [Sessão]
+      operationId: sair
+      summary: Logout
+      description: 'Encerra a sessão e expira o cookie. Idempotente: sem sessão ou com sessão já inválida também responde 200.'
+      x-acesso: sessao-pendente
+      responses:
+        '200':
+          description: Sessão encerrada.
+          headers:
+            Set-Cookie:
+              description: Cookie `__Host-sid` expirado (`Max-Age=0`).
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { type: object, additionalProperties: false }
+              example: { ok: true, data: {} }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /sessoes/atual/papel-ativo:
+    put:
+      tags: [Sessão]
+      operationId: escolherPapel
+      summary: Escolhe o papel ativo (T15 "Trocar papel")
+      description: Só aceita papel que o usuário possui; outro → 403 `FORBIDDEN`. Emite **novo** cookie de sessão e invalida o anterior (DC-11).
+      x-acesso: sessao-completa
+      security: [{ sessao: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [papel]
+              additionalProperties: false
+              properties:
+                papel: { $ref: '#/components/schemas/Papel' }
+            example: { papel: professor }
+      responses:
+        '200':
+          description: Papel ativo atualizado.
+          headers:
+            Set-Cookie: { $ref: '#/components/headers/SetCookieSessao' }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/Me' }
+              example:
+                ok: true
+                data:
+                  id: 01JC8Z6Q4F1G7H9J3K5M7N9P1R
+                  status: ativa
+                  escopoSessao: completa
+                  apelido: null
+                  nome: Ana Souza
+                  email: ana@escola.pe.gov.br
+                  papeis: [aluno, professor]
+                  papelAtivo: professor
+                  anoEscolar: null
+                  escola: { id: 01JC8Z7R5G2H8J0K4M6N8P0Q2S, nome: Escola Municipal Exemplo }
+                  pendencia: null
+        '400': { $ref: '#/components/responses/Erro400' }
+        '401': { $ref: '#/components/responses/Erro401' }
+        '403': { $ref: '#/components/responses/Erro403' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /me:
+    get:
+      tags: [Sessão]
+      operationId: obterMe
+      summary: Sessão atual e dados mínimos do usuário
+      description: |
+        Com sessão **completa**: perfil e papéis. Com sessão **pendente**: `status` pendente e `pendencia` (T05). Sem sessão → 401 `UNAUTHENTICATED`
+        (o FE leva a T16 "Sua sessão acabou"). `Cache-Control: no-store`. `email` só para ≥18 (o próprio); nunca devolve nascimento nem e-mail de responsável.
+      x-acesso: sessao-pendente
+      security: [{ sessao: [] }]
+      responses:
+        '200':
+          description: Usuário da sessão.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/Me' }
+              example:
+                ok: true
+                data:
+                  id: 01JC8Z3K5Q7W2X4V6N8M0P1R2S
+                  status: ativa
+                  escopoSessao: completa
+                  apelido: LeaoAzul42
+                  nome: null
+                  email: null
+                  papeis: [aluno]
+                  papelAtivo: aluno
+                  anoEscolar: EF5
+                  escola: null
+                  pendencia: null
+        '401': { $ref: '#/components/responses/Erro401' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /recuperacao:
+    post:
+      tags: [Recuperação]
+      operationId: solicitarRecuperacao
+      summary: Pede link de recuperação de acesso (T09)
+      description: |
+        **Sempre 202 com a mesma resposta e o mesmo tempo**, exista ou não a conta (DU-06). Menor: link (E4) vai ao e-mail do responsável; ≥18/professor:
+        ao e-mail da conta. Conta pendente, sem e-mail confirmado do responsável ou em exclusão: não envia nada (o FE orienta procurar professor/escola).
+        Link de 30 min, uso único. Limite por conta (mesmo para inexistentes) e por IP; Turnstile (DC-06).
+      x-acesso: publico
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecuperacaoRequest' }
+            example: { identificador: LeaoAzul42 }
+      responses:
+        '202': { $ref: '#/components/responses/Aceito' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '428': { $ref: '#/components/responses/Erro428' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /recuperacao/consulta:
+    post:
+      tags: [Recuperação]
+      operationId: consultarRecuperacao
+      summary: Valida o link de recuperação antes de mostrar T10
+      description: Devolve `apelido` somente para menor (T10 "Para LeaoAzul42"); `null` para ≥18/professor. Não consome o token.
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM }
+      responses:
+        '200':
+          description: Link válido.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: object
+                        required: [apelido, expiraEm]
+                        properties:
+                          apelido: { oneOf: [{ $ref: '#/components/schemas/Apelido' }, { type: 'null' }] }
+                          expiraEm: { $ref: '#/components/schemas/DataHoraUtc' }
+              example: { ok: true, data: { apelido: LeaoAzul42, expiraEm: '2026-10-22T14:33:00.000Z' } }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /recuperacao/nova-senha:
+    post:
+      tags: [Recuperação]
+      operationId: definirNovaSenha
+      summary: Define a nova senha com o link (T10)
+      description: Consome o token, troca a senha e **encerra todas as sessões** do usuário. Não inicia sessão; o FE leva a T01 com "Senha alterada".
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NovaSenhaRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM, novaSenha: lua-pipa-quinze }
+      responses:
+        '200':
+          description: Senha alterada.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data:
+                        type: object
+                        required: [senhaAlterada]
+                        properties:
+                          senhaAlterada: { const: true }
+              example: { ok: true, data: { senhaAlterada: true } }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /professores/convites/consulta:
+    post:
+      tags: [Professor]
+      operationId: consultarConviteProfessor
+      summary: Abre o convite do professor (T11)
+      description: O e-mail do convite aparece completo e não é editável (o portador do token é o destinatário). Convite de 72 h, uso único.
+      x-acesso: token-link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+            example: { token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM }
+      responses:
+        '200':
+          description: Convite válido.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/ConviteProfessor' }
+              example:
+                ok: true
+                data:
+                  email: ana@escola.pe.gov.br
+                  escola: { id: 01JC8Z7R5G2H8J0K4M6N8P0Q2S, nome: Escola Municipal Exemplo }
+                  aviso: { versao: professor-2026-10-v1, publicadoEm: '2026-10-22T00:00:00.000Z' }
+                  expiraEm: '2026-10-25T14:03:00.000Z'
+        '400': { $ref: '#/components/responses/Erro400' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+  /professores:
+    post:
+      tags: [Professor]
+      operationId: cadastrarProfessor
+      summary: Cria a conta de professor a partir do convite (T11)
+      description: |
+        Consome o convite, cria a conta em `pendente_email` com papel `professor` vinculado à escola do convite e envia E3. Emite cookie de **sessão
+        pendente** (DC-01). O convite só é emitido por seed/CLI no Sprint 1.
+      x-acesso: token-link
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CadastroProfessorRequest' }
+            example:
+              token: Qm9uZS1leGVtcGxvLXRva2VuLW9wYWNvLTQzY2hhcnM
+              nome: Ana Souza
+              senha: cafe-lua-treze
+              aviso: { versao: professor-2026-10-v1 }
+      responses:
+        '201':
+          description: Conta pendente de confirmação de e-mail.
+          headers:
+            X-Request-Id: { $ref: '#/components/headers/XRequestId' }
+            Set-Cookie: { $ref: '#/components/headers/SetCookieSessao' }
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    required: [data]
+                    properties:
+                      data: { $ref: '#/components/schemas/CadastroProfessorResultado' }
+              example:
+                ok: true
+                data:
+                  usuario: { id: 01JC8Z6Q4F1G7H9J3K5M7N9P1R, nome: Ana Souza }
+                  status: pendente_email
+                  pendencia: { tipo: email, emailMascarado: an***@escola.pe.gov.br, expiraEm: '2026-10-29T14:03:00.000Z', proximoReenvioEm: '2026-10-22T14:08:00.000Z' }
+        '400': { $ref: '#/components/responses/Erro400' }
+        '409': { $ref: '#/components/responses/Erro409' }
+        '429': { $ref: '#/components/responses/Erro429' }
+        '500': { $ref: '#/components/responses/Erro500' }
+
+components:
+  securitySchemes:
+    sessao:
+      type: apiKey
+      in: cookie
+      name: __Host-sid
+      description: Sessão opaca (ADR-001 §4). Escopo `completa` ou `pendente` (DC-01); o servidor decide por requisição, a partir do banco.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: UUID v4 gerado pelo FE por tentativa de envio (reutilizado em reenvio do mesmo formulário). Vale 24 h (DC-09).
+      schema: { type: string, format: uuid }
+      example: 6f1c1d52-3a0e-4c6b-9a43-0d3f7e2b9c10
+
+  headers:
+    XRequestId:
+      description: Identificador da requisição (ULID), para suporte e logs sem PII.
+      schema: { type: string }
+    RetryAfter:
+      description: Segundos até poder tentar de novo.
+      schema: { type: integer, minimum: 1 }
+    SetCookieSessao:
+      description: '`__Host-sid=<token opaco>; Secure; HttpOnly; SameSite=Lax; Path=/; Max-Age=<s>` (sem `Domain`). TTL conforme ADR-001 §4.'
+      schema: { type: string }
+
+  responses:
+    Aceito:
+      description: Aceito. Resposta idêntica em qualquer caso (sem enumeração).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - type: object
+                required: [data]
+                properties:
+                  data: { type: object, additionalProperties: false }
+          example: { ok: true, data: {} }
+    Erro400:
+      description: '`VALIDATION_ERROR` (com `details` por campo) ou `TOKEN_INVALIDO` (token ausente, expirado, usado ou desconhecido — sem distinguir).'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErroResposta' }
+          examples:
+            validacao:
+              value:
+                ok: false
+                error:
+                  code: VALIDATION_ERROR
+                  message: Há campos para corrigir.
+                  details: [{ path: senha, code: SENHA_COMUM }, { path: nascimento, code: NASCIMENTO_INVALIDO }]
+            token:
+              value: { ok: false, error: { code: TOKEN_INVALIDO, message: Este link não funciona. Ele pode ter expirado ou já ter sido usado. } }
+    Erro401:
+      description: Sem sessão válida (`UNAUTHENTICATED`).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErroResposta' }
+          example: { ok: false, error: { code: UNAUTHENTICATED, message: Sua sessão acabou. Entre de novo. } }
+    Erro401Login:
+      description: Usuário ou senha incorretos (`UNAUTHENTICATED`). Mensagem e tempo idênticos para conta inexistente.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErroResposta' }
+          example: { ok: false, error: { code: UNAUTHENTICATED, message: Usuário ou senha incorretos. } }
+    Erro403:
+      description: Sem permissão (`FORBIDDEN`), inclusive sessão pendente em rota que exige sessão completa. Mesmo texto do 404 (ADR §3).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErroResposta' }
+          example: { ok: false, error: { code: FORBIDDEN, message: Você não tem acesso a esta página. } }
+    Erro409:
+      description: '`CONFLICT` (ex.: `EMAIL_EM_USO`) ou `IDEMPOTENCY_CONFLICT`.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErroResposta' }
+          example:
+            ok: false
+            error: { code: CONFLICT, message: Já existe uma conta com este e-mail., details: [{ path: email, code: EMAIL_EM_USO }] }
+    Erro428:
+      description: Desafio Turnstile exigido (`DESAFIO_REQUERIDO`); reenviar a mesma requisição com `turnstileToken`.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErroResposta' }
+          example: { ok: false, error: { code: DESAFIO_REQUERIDO, message: Confirme que você não é um robô para continuar. } }
+    Erro429:
+      description: Muitas tentativas (`RATE_LIMITED`).
+      headers:
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErroResposta' }
+          example: { ok: false, error: { code: RATE_LIMITED, message: Muitas tentativas. Espere alguns minutos e tente de novo. } }
+    Erro500:
+      description: Erro interno (`INTERNAL`). Nunca traz detalhe técnico (RQ-32); use `X-Request-Id` no suporte.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErroResposta' }
+          example: { ok: false, error: { code: INTERNAL, message: Algo deu errado. Tente de novo. } }
+
+  schemas:
+    # ---------- Primitivos ----------
+    Ulid:
+      type: string
+      pattern: '^[0-9A-HJKMNP-TV-Z]{26}$'
+      examples: [01JC8Z3K5Q7W2X4V6N8M0P1R2S]
+    DataHoraUtc:
+      type: string
+      format: date-time
+      description: ISO-8601 UTC com `Z` e milissegundos.
+      examples: ['2026-10-22T14:03:00.000Z']
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+      description: Normalizado pelo servidor (trim + minúsculas).
+    EmailMascarado:
+      type: string
+      description: 'Primeiros caracteres + `***` + domínio, ex.: `ma***@gmail.com`.'
+    Token:
+      type: string
+      minLength: 32
+      maxLength: 128
+      description: Token opaco de link (uso único para ações). Trate como segredo; não registrar.
+    Apelido:
+      type: string
+      minLength: 5
+      maxLength: 32
+      pattern: '^[A-Za-z]+[0-9]{2,3}$'
+      description: Gerado pelo servidor (adjetivo+animal+número). Também é o usuário de login (DU-01).
+      examples: [LeaoAzul42]
+    Nascimento:
+      type: string
+      pattern: '^(19|20)[0-9]{2}-(0[1-9]|1[0-2])$'
+      description: Mês e ano (`AAAA-MM`), nunca data completa (RQ-02). Não pode ser futuro.
+      examples: ['2014-05']
+    Senha:
+      type: string
+      minLength: 8
+      maxLength: 128
+      writeOnly: true
+      description: 8–128 caracteres, fora da lista de senhas comuns, diferente do apelido. Colar permitido.
+    AnoEscolar:
+      type: string
+      enum: [EF1, EF2, EF3, EF4, EF5, EF6, EF7, EF8, EF9, EM1, EM2, EM3]
+      description: Fundamental 1º–9º ano (`EF1`–`EF9`) e Médio 1ª–3ª série (`EM1`–`EM3`).
+    Papel:
+      type: string
+      enum: [aluno, responsavel, professor, gestor, admin]
+    StatusConta:
+      type: string
+      enum: [pendente_responsavel, pendente_email, ativa, suspensa_exclusao]
+      description: Estados visíveis ao cliente (fluxos.md §3). `apagada` nunca é exposto.
+    TurnstileToken:
+      type: string
+      maxLength: 2048
+    Aviso:
+      type: object
+      required: [versao, publicadoEm]
+      properties:
+        versao: { type: string, examples: [aluno-2026-10-v1] }
+        publicadoEm: { $ref: '#/components/schemas/DataHoraUtc' }
+    AvisoAceite:
+      type: object
+      required: [versao]
+      additionalProperties: false
+      properties:
+        versao: { type: string, maxLength: 64, description: 'Versão do aviso exibida ao usuário; o servidor rejeita versão que não seja a vigente (`AVISO_DESATUALIZADO`).' }
+    AvisosVigentes:
+      type: object
+      required: [aluno, responsavel, professor]
+      properties:
+        aluno: { $ref: '#/components/schemas/Aviso' }
+        responsavel: { $ref: '#/components/schemas/Aviso' }
+        professor: { $ref: '#/components/schemas/Aviso' }
+
+    # ---------- Envelopes e erros (ADR-001 §3) ----------
+    Envelope:
+      type: object
+      required: [ok]
+      properties:
+        ok: { const: true }
+        meta: { type: object, additionalProperties: true }
+    CodigoErro:
+      type: string
+      description: |
+        Código estável. HTTP: 400 `VALIDATION_ERROR`/`TOKEN_INVALIDO` · 401 `UNAUTHENTICATED` · 403 `FORBIDDEN` · 404 `NOT_FOUND` ·
+        409 `CONFLICT`/`IDEMPOTENCY_CONFLICT` · 428 `DESAFIO_REQUERIDO` · 429 `RATE_LIMITED` · 500 `INTERNAL`.
+      enum: [VALIDATION_ERROR, TOKEN_INVALIDO, UNAUTHENTICATED, FORBIDDEN, NOT_FOUND, CONFLICT, IDEMPOTENCY_CONFLICT, DESAFIO_REQUERIDO, RATE_LIMITED, INTERNAL]
+    CodigoCampo:
+      type: string
+      description: Código de erro por campo, em `details[].code`.
+      enum:
+        - OBRIGATORIO
+        - FORMATO_INVALIDO
+        - APELIDO_INVALIDO
+        - APELIDO_EM_USO
+        - EMAIL_INVALIDO
+        - EMAIL_EM_USO
+        - NASCIMENTO_INVALIDO
+        - ANO_ESCOLAR_INVALIDO
+        - SENHA_CURTA
+        - SENHA_LONGA
+        - SENHA_COMUM
+        - SENHA_IGUAL_APELIDO
+        - NOME_INVALIDO
+        - AVISO_DESATUALIZADO
+        - DECLARACAO_OBRIGATORIA
+        - RANKING_INDISPONIVEL
+        - PAPEL_INVALIDO
+    CampoErro:
+      type: object
+      required: [path, code]
+      properties:
+        path: { type: string, description: 'Caminho do campo no corpo, ex.: `senha`, `aviso.versao`.' }
+        code: { $ref: '#/components/schemas/CodigoCampo' }
+    ErroResposta:
+      type: object
+      required: [ok, error]
+      properties:
+        ok: { const: false }
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { $ref: '#/components/schemas/CodigoErro' }
+            message: { type: string, description: 'pt-BR e sem detalhe interno.' }
+            details: { type: array, items: { $ref: '#/components/schemas/CampoErro' } }
+
+    # ---------- Requisições ----------
+    TokenRequest:
+      type: object
+      required: [token]
+      additionalProperties: false
+      properties:
+        token: { $ref: '#/components/schemas/Token' }
+    ApelidoSugerido:
+      type: object
+      required: [apelido, apelidoToken, expiraEm]
+      properties:
+        apelido: { $ref: '#/components/schemas/Apelido' }
+        apelidoToken:
+          allOf: [{ $ref: '#/components/schemas/Token' }]
+          description: Assinatura do servidor sobre o apelido, enviada no cadastro.
+        expiraEm: { $ref: '#/components/schemas/DataHoraUtc' }
+    CadastroAlunoRequest:
+      type: object
+      required: [apelidoToken, nascimento, anoEscolar, email, senha, aviso]
+      additionalProperties: false
+      properties:
+        apelidoToken:
+          allOf: [{ $ref: '#/components/schemas/Token' }]
+          description: Valor devolvido por `sortearApelido` (assinado, 30 min). Não há campo `apelido` livre (DC-03).
+        nascimento: { $ref: '#/components/schemas/Nascimento' }
+        anoEscolar: { $ref: '#/components/schemas/AnoEscolar' }
+        email:
+          allOf: [{ $ref: '#/components/schemas/Email' }]
+          description: E-mail do responsável se o aluno for menor de 18; do próprio aluno se for maior (DC-04).
+        senha: { $ref: '#/components/schemas/Senha' }
+        aviso: { $ref: '#/components/schemas/AvisoAceite' }
+        turnstileToken: { $ref: '#/components/schemas/TurnstileToken' }
+    ConcessaoRequest:
+      type: object
+      required: [token, nomeResponsavel, declaracao, aviso]
+      additionalProperties: false
+      properties:
+        token: { $ref: '#/components/schemas/Token' }
+        nomeResponsavel: { type: string, minLength: 2, maxLength: 120 }
+        declaracao: { const: true, description: 'Caixa "Sou responsável por [apelido] e autorizo o uso desses dados". Deve ser `true`.' }
+        aviso: { $ref: '#/components/schemas/AvisoAceite' }
+        rankingAutorizado: { type: boolean, default: false, description: 'Padrão desligado (RQ-21).' }
+    LoginRequest:
+      type: object
+      required: [identificador, senha]
+      additionalProperties: false
+      properties:
+        identificador: { type: string, minLength: 3, maxLength: 254, description: 'Apelido ou e-mail.' }
+        senha: { type: string, minLength: 1, maxLength: 128, writeOnly: true }
+        turnstileToken: { $ref: '#/components/schemas/TurnstileToken' }
+    RecuperacaoRequest:
+      type: object
+      required: [identificador]
+      additionalProperties: false
+      properties:
+        identificador: { type: string, minLength: 3, maxLength: 254 }
+        turnstileToken: { $ref: '#/components/schemas/TurnstileToken' }
+    NovaSenhaRequest:
+      type: object
+      required: [token, novaSenha]
+      additionalProperties: false
+      properties:
+        token: { $ref: '#/components/schemas/Token' }
+        novaSenha: { $ref: '#/components/schemas/Senha' }
+    CadastroProfessorRequest:
+      type: object
+      required: [token, nome, senha, aviso]
+      additionalProperties: false
+      properties:
+        token: { $ref: '#/components/schemas/Token' }
+        nome: { type: string, minLength: 2, maxLength: 120 }
+        senha: { $ref: '#/components/schemas/Senha' }
+        aviso: { $ref: '#/components/schemas/AvisoAceite' }
+
+    # ---------- Respostas (dados) ----------
+    Pendencia:
+      type: object
+      required: [tipo, emailMascarado, expiraEm, proximoReenvioEm]
+      properties:
+        tipo: { type: string, enum: [responsavel, email], description: '`responsavel` = aguardando autorização; `email` = confirmar e-mail.' }
+        emailMascarado: { $ref: '#/components/schemas/EmailMascarado' }
+        expiraEm: { $ref: '#/components/schemas/DataHoraUtc' }
+        proximoReenvioEm: { $ref: '#/components/schemas/DataHoraUtc' }
+    CadastroAlunoResultado:
+      type: object
+      required: [usuario, status, menor, pendencia]
+      properties:
+        usuario:
+          type: object
+          required: [id, apelido]
+          properties:
+            id: { $ref: '#/components/schemas/Ulid' }
+            apelido: { $ref: '#/components/schemas/Apelido' }
+        status: { type: string, enum: [pendente_responsavel, pendente_email] }
+        menor: { type: boolean }
+        pendencia: { $ref: '#/components/schemas/Pendencia' }
+    CadastroProfessorResultado:
+      type: object
+      required: [usuario, status, pendencia]
+      properties:
+        usuario:
+          type: object
+          required: [id, nome]
+          properties:
+            id: { $ref: '#/components/schemas/Ulid' }
+            nome: { type: string }
+        status: { const: pendente_email }
+        pendencia: { $ref: '#/components/schemas/Pendencia' }
+    PedidoConsentimento:
+      type: object
+      required: [apelido, aviso, rankingDisponivel, expiraEm]
+      properties:
+        apelido: { $ref: '#/components/schemas/Apelido' }
+        aviso: { $ref: '#/components/schemas/Aviso' }
+        rankingDisponivel: { type: boolean }
+        expiraEm: { $ref: '#/components/schemas/DataHoraUtc' }
+    ConsentimentoRegistrado:
+      type: object
+      required: [resultado, protocolo, apelido, registradoEm]
+      properties:
+        resultado: { type: string, enum: [autorizado, revogado] }
+        protocolo: { $ref: '#/components/schemas/Ulid' }
+        apelido: { $ref: '#/components/schemas/Apelido' }
+        registradoEm: { $ref: '#/components/schemas/DataHoraUtc' }
+        exclusaoPrevistaAte:
+          description: 'Só em `revogado` (até 15 dias, RQ-14).'
+          $ref: '#/components/schemas/DataHoraUtc'
+    GestaoConsentimento:
+      type: object
+      required: [apelido, situacao, autorizadoEm, rankingAutorizado, rankingDisponivel, exclusaoPrevistaAte]
+      properties:
+        apelido: { $ref: '#/components/schemas/Apelido' }
+        situacao: { type: string, enum: [autorizada, revogada] }
+        autorizadoEm: { $ref: '#/components/schemas/DataHoraUtc' }
+        rankingAutorizado: { type: boolean }
+        rankingDisponivel: { type: boolean }
+        exclusaoPrevistaAte:
+          oneOf: [{ $ref: '#/components/schemas/DataHoraUtc' }, { type: 'null' }]
+    LoginResultado:
+      type: object
+      required: [status, escopoSessao, me]
+      properties:
+        status: { $ref: '#/components/schemas/StatusConta' }
+        escopoSessao: { type: string, enum: [completa, pendente, nenhuma] }
+        me:
+          description: Presente quando há sessão (`completa` ou `pendente`); `null` se `nenhuma`.
+          oneOf: [{ $ref: '#/components/schemas/Me' }, { type: 'null' }]
+    Escola:
+      type: object
+      required: [id, nome]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        nome: { type: string }
+    Me:
+      type: object
+      required: [id, status, escopoSessao, apelido, nome, email, papeis, papelAtivo, anoEscolar, escola, pendencia]
+      properties:
+        id: { $ref: '#/components/schemas/Ulid' }
+        status: { $ref: '#/components/schemas/StatusConta' }
+        escopoSessao: { type: string, enum: [completa, pendente] }
+        apelido:
+          description: Aluno.
+          oneOf: [{ $ref: '#/components/schemas/Apelido' }, { type: 'null' }]
+        nome:
+          description: Professor/gestor/admin.
+          oneOf: [{ type: string }, { type: 'null' }]
+        email:
+          description: Só do próprio usuário ≥18; nunca o de responsável.
+          oneOf: [{ $ref: '#/components/schemas/Email' }, { type: 'null' }]
+        papeis:
+          type: array
+          items: { $ref: '#/components/schemas/Papel' }
+          description: Vazio enquanto a conta é pendente.
+        papelAtivo:
+          description: '`null` se há mais de um papel e nenhum escolhido (FE mostra T15), ou se a sessão é pendente.'
+          oneOf: [{ $ref: '#/components/schemas/Papel' }, { type: 'null' }]
+        anoEscolar:
+          description: Aluno; base do `data-etapa` no FE. Nunca devolve nascimento.
+          oneOf: [{ $ref: '#/components/schemas/AnoEscolar' }, { type: 'null' }]
+        escola:
+          oneOf: [{ $ref: '#/components/schemas/Escola' }, { type: 'null' }]
+        pendencia:
+          description: Presente só com sessão pendente.
+          oneOf: [{ $ref: '#/components/schemas/Pendencia' }, { type: 'null' }]
+    ConviteProfessor:
+      type: object
+      required: [email, escola, aviso, expiraEm]
+      properties:
+        email: { $ref: '#/components/schemas/Email' }
+        escola: { $ref: '#/components/schemas/Escola' }
+        aviso: { $ref: '#/components/schemas/Aviso' }
+        expiraEm: { $ref: '#/components/schemas/DataHoraUtc' }

@@ -1,0 +1,4 @@
+/* Ponto de entrada: `import '@aprendemais/ui/styles.css'` (uma vez, na raiz do app). */
+@import './tokens.css';
+@import './base.css';
+@import './components.css';

@@ -1,0 +1,69 @@
+name: Deploy
+
+# Produção SÓ por tag `v*` ou execução manual. Nunca em push/PR.
+# Tag → produção (api + web). Manual → escolha ambiente e alvo.
+# A landing legada fica FORA de "todos" até a S1-BE-05 (sem entrypoint, /api/* não funciona): só com alvo "legada".
+# Migrations de D1 NÃO rodam aqui (ver docs/devops/ambientes.md §5).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: Ambiente de destino
+        type: choice
+        options: [staging, production]
+        default: staging
+      alvo:
+        description: O que publicar
+        type: choice
+        options: [todos, api, web, legada]
+        default: todos
+
+permissions:
+  contents: read
+
+env:
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: wrangler deploy
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: ${{ github.event_name == 'push' && 'production' || inputs.ambiente }}
+    concurrency:
+      group: deploy-${{ github.event_name == 'push' && 'production' || inputs.ambiente }}
+      cancel-in-progress: false
+    env:
+      AMBIENTE: ${{ github.event_name == 'push' && 'production' || inputs.ambiente }}
+      ALVO: ${{ github.event_name == 'push' && 'todos' || inputs.alvo }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Bloquear placeholders pendentes
+        run: node scripts/check-placeholders.mjs "$AMBIENTE"
+      - name: Deploy api
+        if: env.ALVO == 'todos' || env.ALVO == 'api'
+        working-directory: apps/api
+        run: pnpm exec wrangler deploy --env "$AMBIENTE"
+      - name: Deploy web
+        if: env.ALVO == 'todos' || env.ALVO == 'web'
+        working-directory: apps/web
+        run: pnpm exec wrangler deploy --env "$AMBIENTE"
+      - name: Deploy landing legada
+        if: env.ALVO == 'legada'
+        run: pnpm exec wrangler deploy --env "$AMBIENTE"

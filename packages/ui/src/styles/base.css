@@ -1,0 +1,96 @@
+/* Base global do Aprende+: reset leve, tipografia, foco e utilitários. Mobile-first (360px). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--am-color-neutral-bg);
+  color: var(--am-color-neutral-text);
+  font-family: var(--am-typography-family-sans);
+  font-size: var(--am-font-base);
+  line-height: var(--am-typography-line-height-normal);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--am-color-brand-navy);
+  font-weight: var(--am-typography-weight-bold);
+  line-height: var(--am-typography-line-height-tight);
+}
+
+h1 { font-size: var(--am-typography-responsive-h1-mobile); }
+h2 { font-size: var(--am-typography-responsive-h2-mobile); }
+h3 { font-size: var(--am-typography-size-h3); }
+h4 { font-size: var(--am-typography-size-h4); }
+
+p {
+  margin: 0;
+  max-width: var(--am-typography-measure-max);
+}
+
+a {
+  color: var(--am-color-brand-blue);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+a:hover:not(.am-btn) {
+  color: var(--am-color-primary-active);
+}
+
+/* `<a class="am-btn">`: botão feito com link (navegação) não sublinha nem muda de cor. */
+a.am-btn {
+  text-decoration: none;
+}
+
+/* Foco sempre visível (WCAG 2.4.7/2.4.13): anel de 3px, ≥ 3:1 contra o fundo. */
+:focus-visible {
+  outline: var(--am-focus-width) solid var(--am-focus-color);
+  outline-offset: var(--am-focus-offset);
+}
+
+/* Só o texto visível ao leitor de tela. */
+.am-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  h1 { font-size: var(--am-typography-responsive-h1-desktop); }
+  h2 { font-size: var(--am-typography-responsive-h2-desktop); }
+}
+
+/* Sem animação de movimento (tokens.json › motion.regra). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

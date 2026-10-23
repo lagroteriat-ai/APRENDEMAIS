@@ -1,0 +1,130 @@
+{
+  "versao": "0.1.0",
+  "atualizado_em": "2026-10-22",
+  "etapas": [
+    {
+      "id": "EF1",
+      "nome": "Ensino Fundamental — Anos Iniciais",
+      "anos": [
+        { "id": 1, "rotulo": "1º ano" },
+        { "id": 2, "rotulo": "2º ano" },
+        { "id": 3, "rotulo": "3º ano" },
+        { "id": 4, "rotulo": "4º ano" },
+        { "id": 5, "rotulo": "5º ano" }
+      ]
+    },
+    {
+      "id": "EF2",
+      "nome": "Ensino Fundamental — Anos Finais",
+      "anos": [
+        { "id": 6, "rotulo": "6º ano" },
+        { "id": 7, "rotulo": "7º ano" },
+        { "id": 8, "rotulo": "8º ano" },
+        { "id": 9, "rotulo": "9º ano" }
+      ]
+    },
+    {
+      "id": "EM",
+      "nome": "Ensino Médio",
+      "anos": [
+        { "id": 1, "rotulo": "1ª série" },
+        { "id": 2, "rotulo": "2ª série" },
+        { "id": 3, "rotulo": "3ª série" }
+      ]
+    }
+  ],
+  "disciplinas": [
+    {
+      "id": "LP",
+      "nome": "Língua Portuguesa",
+      "area": "Linguagens",
+      "prioridade": true,
+      "etapas": ["EF1", "EF2", "EM"],
+      "prefixo_bncc": "LP",
+      "arquivo_habilidades": "habilidades-lingua-portuguesa.json",
+      "cobertura_atual": "EF1 5º ano (piloto, Sprint 1)"
+    },
+    {
+      "id": "MA",
+      "nome": "Matemática",
+      "area": "Matemática",
+      "prioridade": true,
+      "etapas": ["EF1", "EF2", "EM"],
+      "prefixo_bncc": "MA",
+      "arquivo_habilidades": "habilidades-matematica.json",
+      "cobertura_atual": "EF1 5º ano (piloto, Sprint 1)"
+    },
+    {
+      "id": "CI",
+      "nome": "Ciências",
+      "area": "Ciências da Natureza",
+      "prioridade": false,
+      "etapas": ["EF1", "EF2"],
+      "prefixo_bncc": "CI",
+      "arquivo_habilidades": null,
+      "cobertura_atual": null
+    },
+    {
+      "id": "HI",
+      "nome": "História",
+      "area": "Ciências Humanas",
+      "prioridade": false,
+      "etapas": ["EF1", "EF2"],
+      "prefixo_bncc": "HI",
+      "arquivo_habilidades": null,
+      "cobertura_atual": null
+    },
+    {
+      "id": "GE",
+      "nome": "Geografia",
+      "area": "Ciências Humanas",
+      "prioridade": false,
+      "etapas": ["EF1", "EF2"],
+      "prefixo_bncc": "GE",
+      "arquivo_habilidades": null,
+      "cobertura_atual": null
+    },
+    {
+      "id": "LI",
+      "nome": "Língua Inglesa",
+      "area": "Linguagens",
+      "prioridade": false,
+      "etapas": ["EF2", "EM"],
+      "prefixo_bncc": "LI",
+      "arquivo_habilidades": null,
+      "cobertura_atual": null,
+      "observacao": "Na BNCC a Língua Inglesa é obrigatória a partir do 6º ano; nos anos iniciais depende da rede."
+    },
+    {
+      "id": "AR",
+      "nome": "Arte",
+      "area": "Linguagens",
+      "prioridade": false,
+      "etapas": ["EF1", "EF2", "EM"],
+      "prefixo_bncc": "AR",
+      "arquivo_habilidades": null,
+      "cobertura_atual": null
+    },
+    {
+      "id": "EF",
+      "nome": "Educação Física",
+      "area": "Linguagens",
+      "prioridade": false,
+      "etapas": ["EF1", "EF2", "EM"],
+      "prefixo_bncc": "EF",
+      "arquivo_habilidades": null,
+      "cobertura_atual": null,
+      "observacao": "O prefixo 'EF' das habilidades de Educação Física (ex.: EF12EF01) não deve ser confundido com 'EF' de Ensino Fundamental; use sempre o campo 'disciplina' (id), nunca o prefixo, para distinguir."
+    },
+    {
+      "id": "ER",
+      "nome": "Ensino Religioso",
+      "area": "Ensino Religioso",
+      "prioridade": false,
+      "etapas": ["EF1", "EF2"],
+      "prefixo_bncc": "ER",
+      "arquivo_habilidades": null,
+      "cobertura_atual": null
+    }
+  ]
+}

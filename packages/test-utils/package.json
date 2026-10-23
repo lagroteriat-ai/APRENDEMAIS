@@ -1,0 +1,22 @@
+{
+  "name": "@aprendemais/test-utils",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Fábricas de dados sintéticos e helpers de teste (sem dados pessoais reais). Consumido como código-fonte; só entra em devDependencies.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@aprendemais/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

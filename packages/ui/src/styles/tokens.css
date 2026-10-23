@@ -1,0 +1,145 @@
+/* GERADO por packages/ui/scripts/gerar-tokens.mjs a partir de docs/ux/tokens.json.
+   Não edite à mão: altere o JSON (dono: UX) e rode `pnpm --filter @aprendemais/ui tokens`. */
+
+:root,
+[data-etapa="neutra"] {
+  --am-color-brand-navy: #062b51;
+  --am-color-brand-blue: #0a55b7;
+  --am-color-brand-yellow: #f7b51b;
+  --am-color-neutral-text: #102b53;
+  --am-color-neutral-muted: #4d6382;
+  --am-color-neutral-line: #e4eaf2;
+  --am-color-neutral-border: #7b8aa0;
+  --am-color-neutral-bg: #ffffff;
+  --am-color-neutral-surface: #f4f7fb;
+  --am-color-neutral-white: #ffffff;
+  --am-color-primary-default: #0a55b7;
+  --am-color-primary-hover: #084a9f;
+  --am-color-primary-active: #063e85;
+  --am-color-primary-tint: #eaf2fd;
+  --am-color-accent-default: #f7b51b;
+  --am-color-accent-hover: #e8a606;
+  --am-color-accent-tint: #fff6dc;
+  --am-color-accent-light: #ffd466;
+  --am-color-feedback-success-fg: #146c3f;
+  --am-color-feedback-success-bg: #e8f5ee;
+  --am-color-feedback-success-solid: #1b7a4b;
+  --am-color-feedback-error-fg: #9f1f18;
+  --am-color-feedback-error-bg: #fdecea;
+  --am-color-feedback-error-solid: #b3261e;
+  --am-color-feedback-warning-fg: #7a4f00;
+  --am-color-feedback-warning-bg: #fff6dc;
+  --am-color-feedback-warning-solid: #7a4f00;
+  --am-color-feedback-info-fg: #0a55b7;
+  --am-color-feedback-info-bg: #eaf2fd;
+  --am-color-feedback-info-solid: #0a55b7;
+  --am-color-focus-ring: #0a55b7;
+  --am-color-focus-ring-on-dark: #f7b51b;
+  --am-color-overlay: rgba(6, 43, 81, 0.55);
+  --am-typography-family-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --am-typography-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --am-typography-weight-regular: 400;
+  --am-typography-weight-medium: 500;
+  --am-typography-weight-semibold: 650;
+  --am-typography-weight-bold: 800;
+  --am-typography-weight-black: 900;
+  --am-typography-size-xs: 0.75rem;
+  --am-typography-size-sm: 0.875rem;
+  --am-typography-size-md: 1rem;
+  --am-typography-size-lg: 1.125rem;
+  --am-typography-size-xl: 1.25rem;
+  --am-typography-size-h4: 1.25rem;
+  --am-typography-size-h3: 1.5rem;
+  --am-typography-size-h2: 1.875rem;
+  --am-typography-size-h1: 2.375rem;
+  --am-typography-size-display: 3rem;
+  --am-typography-line-height-tight: 1.2;
+  --am-typography-line-height-snug: 1.35;
+  --am-typography-line-height-normal: 1.5;
+  --am-typography-line-height-relaxed: 1.7;
+  --am-typography-letter-spacing-normal: 0;
+  --am-typography-letter-spacing-caps: 0.04em;
+  --am-typography-measure-max: 65ch;
+  --am-typography-responsive-h1-mobile: 1.75rem;
+  --am-typography-responsive-h1-desktop: 2.375rem;
+  --am-typography-responsive-h2-mobile: 1.5rem;
+  --am-typography-responsive-h2-desktop: 1.875rem;
+  --am-typography-responsive-display-mobile: 2.25rem;
+  --am-typography-responsive-display-desktop: 3rem;
+  --am-space-base: 4px;
+  --am-space-scale-0: 0;
+  --am-space-scale-1: 0.25rem;
+  --am-space-scale-2: 0.5rem;
+  --am-space-scale-3: 0.75rem;
+  --am-space-scale-4: 1rem;
+  --am-space-scale-5: 1.25rem;
+  --am-space-scale-6: 1.5rem;
+  --am-space-scale-8: 2rem;
+  --am-space-scale-10: 2.5rem;
+  --am-space-scale-12: 3rem;
+  --am-space-scale-16: 4rem;
+  --am-space-gutter-mobile: 16px;
+  --am-space-gutter-desktop: 24px;
+  --am-space-container-max: 1380px;
+  --am-space-container-width: min(1380px, 92%);
+  --am-space-container-form-max: 440px;
+  --am-space-container-content-max: 1100px;
+  --am-radius-sm: 6px;
+  --am-radius-md: 12px;
+  --am-radius-lg: 16px;
+  --am-radius-xl: 24px;
+  --am-radius-pill: 999px;
+  --am-shadow-sm: 0 1px 2px rgba(6, 43, 81, 0.08);
+  --am-shadow-md: 0 4px 12px rgba(6, 43, 81, 0.10);
+  --am-shadow-lg: 0 12px 32px rgba(6, 43, 81, 0.14);
+  --am-border-width-thin: 1px;
+  --am-border-width-default: 2px;
+  --am-size-target-fund-i: 48px;
+  --am-size-target-aa-min: 24px;
+  --am-size-control-sm: 36px;
+  --am-size-control-md: 44px;
+  --am-size-control-lg: 52px;
+  --am-size-icon-sm: 16px;
+  --am-size-icon-md: 20px;
+  --am-size-icon-lg: 24px;
+  --am-size-icon-xl: 32px;
+  --am-size-header: 74px;
+  --am-motion-duration-fast: 120ms;
+  --am-motion-duration-base: 200ms;
+  --am-motion-duration-slow: 320ms;
+  --am-motion-easing: cubic-bezier(0.2, 0, 0, 1);
+  --am-z-index-header: 50;
+  --am-z-index-dropdown: 60;
+  --am-z-index-modal: 100;
+  --am-z-index-toast: 110;
+  --am-focus-width: 3px;
+  --am-focus-offset: 2px;
+  --am-focus-color: var(--am-color-focus-ring);
+  --am-font-base: 1rem;
+  --am-size-target-min: 44px;
+  --am-radius-extra: 0px;
+}
+
+/* Variações por etapa de ensino (área logada do aluno). */
+[data-etapa="fund1"] {
+  --am-font-base: 1.125rem;
+  --am-size-target-min: 48px;
+  --am-radius-extra: 4px;
+}
+
+[data-etapa="fund2"] {
+  --am-font-base: 1rem;
+  --am-size-target-min: 44px;
+  --am-radius-extra: 0px;
+}
+
+[data-etapa="medio"] {
+  --am-font-base: 1rem;
+  --am-size-target-min: 44px;
+  --am-radius-extra: 0px;
+}
+
+/* Superfícies escuras (navy/blue): anel de foco amarelo. */
+.am-on-dark {
+  --am-focus-color: var(--am-color-focus-ring-on-dark);
+}

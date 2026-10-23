@@ -1,5 +1,17 @@
+import { gerarAccessToken } from '../_lib/seguranca.js';
+import { dentroDoLimite, ipDoCliente, validarTurnstile } from '../_lib/protecao.js';
+
 export async function onRequestPost(context) {
   try {
+    const ip = ipDoCliente(context.request);
+    if (!(await dentroDoLimite(context.env, ip))) {
+      return json(
+        { ok: false, message: 'Muitas tentativas em pouco tempo. Aguarde um minuto e tente novamente.' },
+        429,
+        { 'Retry-After': '60' }
+      );
+    }
+
     const body = await context.request.json();
     const nome = String(body.nome || '').trim();
     const sobrenome = String(body.sobrenome || '').trim();
@@ -19,6 +31,27 @@ export async function onRequestPost(context) {
 
     if (!context.env.DB) {
       return json({ ok: false, message: 'Banco de dados não configurado no Cloudflare.' }, 500);
+    }
+
+    if (!context.env.LEAD_SECRET) {
+      console.error('LEAD_SECRET não configurado.');
+      return json({ ok: false, message: 'Serviço indisponível no momento.' }, 500);
+    }
+
+    if (!context.env.TURNSTILE_SECRET) {
+      console.error('TURNSTILE_SECRET não configurado.');
+      return json({ ok: false, message: 'Serviço indisponível no momento.' }, 500);
+    }
+
+    const verificacao = await validarTurnstile(context.env, body.turnstileToken, ip);
+    if (verificacao === 'ausente') {
+      return json({ ok: false, message: 'Confirme que você não é um robô para continuar.' }, 400);
+    }
+    if (verificacao === 'invalido') {
+      return json({ ok: false, message: 'Não foi possível confirmar a verificação de segurança. Atualize-a e tente de novo.' }, 400);
+    }
+    if (verificacao !== 'ok') {
+      return json({ ok: false, message: 'Não foi possível validar a verificação de segurança agora. Tente novamente em instantes.' }, 503);
     }
 
     const existing = await context.env.DB.prepare(
@@ -42,15 +75,17 @@ export async function onRequestPost(context) {
       leadId = result.meta.last_row_id;
     }
 
-    return json({ ok: true, leadId });
+    const accessToken = await gerarAccessToken(leadId, context.env.LEAD_SECRET);
+    return json({ ok: true, leadId, accessToken });
   } catch (error) {
-    return json({ ok: false, message: 'Não foi possível salvar o cadastro.', detail: error.message }, 500);
+    console.error('leads POST falhou:', error);
+    return json({ ok: false, message: 'Não foi possível salvar o cadastro.' }, 500);
   }
 }
 
-function json(data, status = 200) {
+function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=UTF-8' }
+    headers: { 'Content-Type': 'application/json; charset=UTF-8', ...headers }
   });
 }

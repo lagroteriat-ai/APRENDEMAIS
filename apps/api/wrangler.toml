@@ -1,0 +1,113 @@
+# Worker da API (Hono, /api/v1/*). Topo = DEV (wrangler dev, local); staging/produção em [env.*].
+# Bindings NÃO são herdados entre ambientes: cada [env.*] repete DB/KV/R2.
+# Placeholders "COLOQUE_*" (PEN-002): criar recursos conforme docs/devops/ambientes.md §3.
+# Secrets (sem valores; `wrangler secret put <NOME> --env <amb>`): TURNSTILE_SECRET, IP_HASH_SECRET, APP_SECRET.
+# Local: crie apps/api/.dev.vars (não versionar) com os secrets.
+# Rate limit: Durable Object `Limitador` (contador atômico; KV não serve, ADR-001 §1). DO e migrations não são herdados.
+
+name = "aprende-mais-api-dev"
+main = "src/index.ts"
+compatibility_date = "2026-09-29"
+workers_dev = true
+preview_urls = true
+
+[vars]
+ENVIRONMENT = "dev"
+# Origens extras aceitas em POST/PUT/DELETE (mesma origem sempre vale). Dev: Vite em :5173.
+ALLOWED_ORIGINS = "http://localhost:5173"
+# Base dos links enviados por e-mail (rotas da SPA: docs/ux/fluxos.md §1).
+APP_BASE_URL = "http://localhost:5173"
+# "true" = cadastro e recuperação exigem Turnstile (DC-06). Login só exige após 3 falhas.
+TURNSTILE_OBRIGATORIO = "false"
+
+[[durable_objects.bindings]]
+name = "LIMITADOR"
+class_name = "Limitador"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Limitador"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aprendemais-dev"
+database_id = "COLOQUE_ID_D1_API_DEV"
+migrations_dir = "../../db/migrations"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "COLOQUE_ID_KV_API_DEV"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "aprendemais-midia-dev"
+
+# ---------- staging ----------
+[env.staging]
+name = "aprende-mais-api-staging"
+workers_dev = true
+preview_urls = true
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
+ALLOWED_ORIGINS = ""
+APP_BASE_URL = "COLOQUE_URL_APP_STAGING"
+TURNSTILE_OBRIGATORIO = "true"
+
+[[env.staging.durable_objects.bindings]]
+name = "LIMITADOR"
+class_name = "Limitador"
+
+[[env.staging.migrations]]
+tag = "v1"
+new_sqlite_classes = ["Limitador"]
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "aprendemais-staging"
+database_id = "COLOQUE_ID_D1_API_STAGING"
+migrations_dir = "../../db/migrations"
+
+[[env.staging.kv_namespaces]]
+binding = "KV"
+id = "COLOQUE_ID_KV_API_STAGING"
+
+[[env.staging.r2_buckets]]
+binding = "R2"
+bucket_name = "aprendemais-midia-staging"
+
+# ---------- produção ----------
+# Mesmo host do web: adicionar `routes = [{ pattern = "DOMINIO/api/v1/*", zone_name = "DOMINIO" }]`
+# quando houver domínio (rota mais específica vence a do web "DOMINIO/*"; validar no 1º deploy).
+[env.production]
+name = "aprende-mais-api"
+workers_dev = true # desligar depois de apontar o domínio
+preview_urls = false
+
+[env.production.vars]
+ENVIRONMENT = "production"
+ALLOWED_ORIGINS = ""
+APP_BASE_URL = "COLOQUE_URL_APP_PROD"
+TURNSTILE_OBRIGATORIO = "true"
+
+[[env.production.durable_objects.bindings]]
+name = "LIMITADOR"
+class_name = "Limitador"
+
+[[env.production.migrations]]
+tag = "v1"
+new_sqlite_classes = ["Limitador"]
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "aprendemais-prod"
+database_id = "COLOQUE_ID_D1_API_PROD"
+migrations_dir = "../../db/migrations"
+
+[[env.production.kv_namespaces]]
+binding = "KV"
+id = "COLOQUE_ID_KV_API_PROD"
+
+[[env.production.r2_buckets]]
+binding = "R2"
+bucket_name = "aprendemais-midia-prod"

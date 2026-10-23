@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call: # reutilizado por deploy.yml
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  verificar:
+    name: lint · typecheck · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4 # versão vem de "packageManager" no package.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      # Unitário + integração (Vitest/workerd) com relatório JUnit por pacote + testes da landing legada.
+      - run: pnpm test:ci
+      - name: Publicar relatórios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorios-vitest
+          path: "**/reports/junit.xml"
+          if-no-files-found: ignore
+          retention-days: 14
+      - run: pnpm build
+      # Valida os wrangler.toml (staging/prod) sem deploy nem credenciais.
+      - run: pnpm check:wrangler
+
+  e2e:
+    name: e2e (Playwright · Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:e2e:install
+      # O próprio Playwright sobe a landing (pnpm build:legacy + wrangler dev); ver playwright.config.ts.
+      - run: pnpm test:e2e
+      - name: Publicar relatório do Playwright
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-playwright
+          path: |
+            playwright-report/
+            test-results/
+            reports/e2e-junit.xml
+          if-no-files-found: ignore
+          retention-days: 14

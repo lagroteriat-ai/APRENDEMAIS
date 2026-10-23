@@ -1,9 +1,65 @@
-name = "aprende-mais"
+# Worker LEGADO — landing de leads (ADR-002; resolve PEN-016). Congelado até a v1.0.
+# Topo = ambiente DEV (wrangler dev, local). Staging/produção em [env.*] (bindings não são herdados).
+# Estáticos: só dist-legacy/ (gerado por `pnpm build:legacy`) — nunca a raiz do repositório.
+# Placeholders "COLOQUE_*" (PEN-002): ver docs/devops/ambientes.md §3 para criar os recursos.
+# Secrets (sem valores aqui; `wrangler secret put <NOME> [--env X]`): ADMIN_TOKEN, LEAD_SECRET, TURNSTILE_SECRET.
+# TODO S1-BE-05: adicionar `main` (entrypoint fetch) e `assets.run_worker_first = ["/api/*"]`;
+# até lá o Worker serve só a landing estática e /api/* NÃO funciona (a API vive em functions/, só Pages).
+
+name = "aprende-mais-dev"
 compatibility_date = "2026-09-29"
-pages_build_output_dir = "."
+workers_dev = true
+preview_urls = true
+
+[assets]
+directory = "./dist-legacy"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "APRENDEMAIS_LEADS"
-database_id = "COLOQUE_O_ID_DO_SEU_D1_AQUI"
+database_name = "APRENDEMAIS_LEADS_DEV"
+database_id = "COLOQUE_ID_D1_LEGADO_DEV"
 migrations_dir = "migrations"
+
+# Rate limit por IP em POST /api/leads (PEN-004): 5 req/60 s. namespace_id é único na conta (não é segredo).
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
+
+[env.staging]
+name = "aprende-mais-staging"
+workers_dev = true
+preview_urls = true
+
+[env.staging.assets]
+directory = "./dist-legacy"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "APRENDEMAIS_LEADS_STAGING"
+database_id = "COLOQUE_ID_D1_LEGADO_STAGING"
+migrations_dir = "migrations"
+
+[[env.staging.ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1002"
+simple = { limit = 5, period = 60 }
+
+[env.production]
+name = "aprende-mais" # mantém o nome do projeto atual
+workers_dev = true # desligar depois de apontar o domínio (routes)
+preview_urls = false # produção sem Preview URLs
+
+[env.production.assets]
+directory = "./dist-legacy"
+
+[[env.production.d1_databases]]
+binding = "DB"
+database_name = "APRENDEMAIS_LEADS"
+database_id = "COLOQUE_ID_D1_LEGADO_PROD"
+migrations_dir = "migrations"
+
+[[env.production.ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1003"
+simple = { limit = 5, period = 60 }
