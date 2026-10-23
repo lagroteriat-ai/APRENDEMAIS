@@ -20,7 +20,7 @@ await rm(destino, { recursive: true, force: true });
 await mkdir(destino, { recursive: true });
 
 for (const item of publicos) {
-  const origem = join(raiz, item);
+  const origem = join(raiz, 'public', item);
   try {
     await access(origem);
   } catch {
