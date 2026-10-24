@@ -10,6 +10,7 @@ export type AcaoAuditoria =
   | 'consentimento.revogar'
   | 'conta.exclusao_solicitar'
   | 'pre_cadastro.apagar'
+  | 'conta.anonimizar'
   | 'conta.cadastrar' // (+)
   | 'conta.email_confirmar' // (+)
   | 'conta.senha_redefinir' // (+)

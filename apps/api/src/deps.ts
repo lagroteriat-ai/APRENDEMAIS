@@ -1,6 +1,6 @@
+import { criarProvedorEmail } from './email/provedor';
 import type { Env } from './env';
-import { ulid } from './lib/ids';
-import type { Deps, MensagemEmail } from './tipos';
+import type { Deps } from './tipos';
 
 const TURNSTILE_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
@@ -17,22 +17,11 @@ async function verificarTurnstile(env: Env, token: string, ip: string | null): P
   }
 }
 
-/**
- * Envio de e-mail. Ainda não há provedor contratado (PEN-033): fora de produção grava numa "caixa de saída" no KV
- * (1 h) que o endpoint de desenvolvimento lê; em produção apenas registra o evento, sem destinatário nem link.
- */
-async function enviarEmail(env: Env, mensagem: MensagemEmail): Promise<void> {
-  if (env.ENVIRONMENT === 'production') {
-    console.error(JSON.stringify({ evento: 'email_provedor_nao_configurado', tipo: mensagem.tipo }));
-    return;
-  }
-  await env.KV.put(`outbox:${ulid()}`, JSON.stringify(mensagem), { expirationTtl: 3600 });
-}
-
 export function criarDepsPadrao(env: Env): Deps {
+  const email = criarProvedorEmail(env);
   return {
     agora: () => new Date(),
-    enviarEmail: m => enviarEmail(env, m),
+    enviarEmail: m => email.enviar(m),
     verificarTurnstile: (token, ip) => verificarTurnstile(env, token, ip)
   };
 }

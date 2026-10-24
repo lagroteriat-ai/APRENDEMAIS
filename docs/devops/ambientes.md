@@ -29,7 +29,15 @@ Produção da legada: o D1 `APRENDEMAIS_LEADS` já existe — copie o ID no pain
 | `ADMIN_TOKEN` | legada | senha do painel `/admin.html` | `openssl rand -hex 24` |
 | `LEAD_SECRET` | legada | assina o `accessToken` do lead | `openssl rand -hex 32` |
 | `TURNSTILE_SECRET` | api (e legada, SEG-03) | valida o CAPTCHA | painel Cloudflare → Turnstile |
-| `IP_HASH_SECRET` | api | HMAC do IP em `consentimentos.ip_hash` (PEN-028); distinto por ambiente | `openssl rand -hex 32` |
+| `IP_HASH_SECRET` | api | HMAC do IP em `consentimentos.ip_hash` (PEN-028) **e** das chaves dos contadores de rate limit; distinto por ambiente | `openssl rand -hex 32` |
+| `APP_SECRET` | api | HMAC do `apelidoToken` (≥ 32 caracteres); distinto por ambiente | `openssl rand -hex 32` |
+
+Variáveis da API (não secretas, em `apps/api/wrangler.toml`, repetidas por ambiente): `ALLOWED_ORIGINS` (origens extras para POST/PUT/DELETE;
+a própria origem sempre vale), `APP_BASE_URL` (base dos links dos e-mails; `COLOQUE_URL_APP_*` até haver domínio) e `TURNSTILE_OBRIGATORIO`
+(`true` em staging/produção). A API também declara o Durable Object `Limitador` (contadores atômicos) e sua migration `v1` em cada ambiente.
+**E-mail:** ainda não há provedor (PEN-047); fora de produção os e-mails vão para a caixa de saída no KV (`GET /api/v1/dev/outbox`, só com `ENVIRONMENT=dev`).
+**Retenção:** Cron Trigger diário (03:17 UTC), declarado em `[triggers]` de cada ambiente em `apps/api/wrangler.toml`, roda `src/retencao.ts`; o log traz só contagens.
+**CPU:** o Argon2id (m=19 MiB, t=2) custa ≈ 230 ms de CPU por login/cadastro; exige plano Workers **Paid** (o Free limita a 10 ms).
 
 **Turnstile da landing (SEG-03 / PEN-004):** crie um widget por ambiente no painel (Turnstile → Add widget; domínios do Worker/staging/prod).
 O **secret key** vai em `TURNSTILE_SECRET` (acima). A **site key** (pública) entra no build: `TURNSTILE_SITEKEY=<chave> pnpm build:legacy`
@@ -45,7 +53,7 @@ Dev local: secret de teste `1x0000000000000000000000000000000AA` (sempre passa) 
 - `preview.yml` — por PR: `wrangler versions upload --env staging --preview-alias pr-N` (api, web, legada); resumo traz as URLs.
   Pula (aviso, sem falhar) se faltarem credenciais ou houver placeholders de staging. Não promove tráfego.
 - `deploy.yml` — **só** tag `v*` (produção: api + web) ou manual (ambiente e alvo). Roda o CI antes e bloqueia placeholders.
-  A landing legada só publica com alvo `legada` (até S1-BE-05 ela não tem `/api/*`).
+  A landing legada (Worker `legacy/worker.js`) entra em `todos` e também publica com alvo `legada`; o `TURNSTILE_SITEKEY` (variável do Environment) vai para o `[build]` do `wrangler.toml`.
 - GitHub → Settings → Environments: `staging` e `production` (com revisor obrigatório), cada um com os secrets
   `CLOUDFLARE_API_TOKEN` (permissões: Workers Scripts, D1, KV, R2 — Edit) e `CLOUDFLARE_ACCOUNT_ID`.
 - **Bootstrap:** `versions upload` exige o Worker existente → faça o 1º `deploy.yml` manual em `staging` antes dos previews.
@@ -63,4 +71,4 @@ SR-21: `scripts/verificar-dist.mjs` (parte do `pnpm build`) falha se `dist-legac
 mostram o `routes`. Sem domínio (workers.dev/preview), a SPA não alcança a API por caminho relativo; em dev o Vite faz proxy.
 
 ## 7. Pendências
-Domínio/zona; IDs reais; S1-BE-05 (entrypoint da legada); desligar `workers_dev` em produção; revisar `observability`/logs (RQ-30).
+Domínio/zona; IDs reais; desligar `workers_dev` em produção; revisar `observability`/logs (RQ-30).

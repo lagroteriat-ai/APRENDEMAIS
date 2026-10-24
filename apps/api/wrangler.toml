@@ -28,6 +28,10 @@ class_name = "Limitador"
 tag = "v1"
 new_sqlite_classes = ["Limitador"]
 
+# Retenção e exclusão de dados (src/retencao.ts), todo dia às 03:17 UTC. Triggers não são herdados entre ambientes.
+[triggers]
+crons = ["17 3 * * *"]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "aprendemais-dev"
@@ -61,6 +65,9 @@ class_name = "Limitador"
 [[env.staging.migrations]]
 tag = "v1"
 new_sqlite_classes = ["Limitador"]
+
+[env.staging.triggers]
+crons = ["17 3 * * *"]
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -97,6 +104,9 @@ class_name = "Limitador"
 [[env.production.migrations]]
 tag = "v1"
 new_sqlite_classes = ["Limitador"]
+
+[env.production.triggers]
+crons = ["17 3 * * *"]
 
 [[env.production.d1_databases]]
 binding = "DB"

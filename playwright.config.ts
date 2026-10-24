@@ -11,6 +11,7 @@ const todos = !!process.env.E2E_TODOS_NAVEGADORES;
 export default defineConfig({
   testDir: './tests/e2e',
   testMatch: '**/*.spec.ts',
+  testIgnore: '**/acesso/**', // jornada de acesso: playwright.acesso.config.ts (API + SPA próprias)
   fullyParallel: true,
   forbidOnly: emCI,
   retries: 0, // sem retry mascarando falha de regra (estratégia §5)

@@ -1,18 +1,18 @@
-import { validarAccessToken } from '../_lib/seguranca.js';
+import { validarAccessToken } from '../lib/seguranca.js';
 
-export async function onRequestPost(context) {
+export async function registrarAcessoPrototipo(request, env) {
   try {
-    const body = await context.request.json();
+    const body = await request.json();
     const leadId = Number(body.leadId);
-    if (!leadId || !context.env.DB) {
+    if (!leadId || !env.DB) {
       return json({ ok: false }, 400);
     }
 
-    if (!(await validarAccessToken(leadId, body.accessToken, context.env.LEAD_SECRET))) {
+    if (!(await validarAccessToken(leadId, body.accessToken, env.LEAD_SECRET))) {
       return json({ ok: false }, 403);
     }
 
-    await context.env.DB.prepare(
+    await env.DB.prepare(
       `UPDATE leads
        SET acessou_prototipo = 1, data_acesso_prototipo = CURRENT_TIMESTAMP
        WHERE id = ?`

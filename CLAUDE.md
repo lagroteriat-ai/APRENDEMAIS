@@ -4,19 +4,20 @@ Landing page de captação de leads do **Aprende+** (plataforma educacional, pú
 
 ## Stack
 - Landing legada (raiz): HTML/CSS/JS puros, sem build próprio. Plataforma nova: monorepo **pnpm** (`apps/api`, `apps/web`, `packages/*`), TypeScript, versões em `pnpm-workspace.yaml` (`catalog:`); ver ADR-001/003.
-- Hospedagem: **Cloudflare Workers** (ADR-002) + banco Cloudflare D1 (SQLite), binding `DB`. A landing é servida por Worker só com estáticos de `dist-legacy/`; a API dela ainda está em `functions/` (formato Pages Functions) até a S1-BE-05.
+- Hospedagem: **Cloudflare Workers** (ADR-002) + banco Cloudflare D1 (SQLite), binding `DB`. A landing é um Worker (`legacy/worker.js`): `/api/*` vai para o código, o resto sai de `dist-legacy/` (gerado de `public/` pelo `[build]` do `wrangler.toml`). Não há mais Pages Functions.
 - Secrets (nunca versionar; lista e uso em `docs/devops/ambientes.md`): `ADMIN_TOKEN`, `LEAD_SECRET`, `TURNSTILE_SECRET`, `IP_HASH_SECRET`.
 - Idioma da interface, mensagens e commits: português do Brasil.
 
 ## Estrutura
 | Caminho | Função |
 |---|---|
-| `index.html`, `style.css`, `script.js` | Landing page e envio do formulário |
-| `admin.html`, `admin.css`, `admin.js` | Painel admin (login por token em `sessionStorage`, busca, exclusão, CSV) |
-| `functions/api/leads.js` | `POST /api/leads` — valida e faz upsert (por e-mail ou telefone) |
-| `functions/api/prototype-access.js` | `POST /api/prototype-access` — marca `acessou_prototipo` (exige `accessToken`) |
-| `functions/api/admin/leads.js` | `GET`/`DELETE` de leads, protegido por `Authorization: Bearer ADMIN_TOKEN` |
-| `functions/_lib/seguranca.js` | Helpers: comparação em tempo constante, HMAC do `accessToken` (`LEAD_SECRET`) |
+| `public/index.html`, `style.css`, `script.js` | Landing page e envio do formulário (fonte; `dist-legacy/` é gerado) |
+| `public/admin.html`, `admin.css`, `admin.js` | Painel admin (login por token em `sessionStorage`, busca, exclusão, CSV) |
+| `legacy/worker.js` | Entrypoint `fetch` do Worker da landing: roteia `/api/*` por método+caminho; 404/405 em JSON |
+| `legacy/rotas/leads.js` | `POST /api/leads` — valida e faz upsert (por e-mail ou telefone) |
+| `legacy/rotas/prototype-access.js` | `POST /api/prototype-access` — marca `acessou_prototipo` (exige `accessToken`) |
+| `legacy/rotas/admin-leads.js` | `GET`/`DELETE` de leads, protegido por `Authorization: Bearer ADMIN_TOKEN` |
+| `legacy/lib/seguranca.js`, `legacy/lib/protecao.js` | Comparação em tempo constante, HMAC do `accessToken` (`LEAD_SECRET`), Turnstile e rate limit do cadastro |
 | `schema.sql`, `migrations/*.sql` | D1 **legado** (`leads`): `schema.sql` = estado atual p/ banco novo; `migrations/0001_leads_inicial.sql`+`0002_leads_email_unico.sql` = o que o wrangler aplica (a subpasta `0001_initial/` é ignorada por ele). D1 da plataforma: `db/migrations/` + `db/seeds/` (ver `docs/dados/migrar.md`) |
 | `wrangler.toml` | Worker da landing por ambiente (dev/staging/prod); IDs `COLOQUE_*` são placeholders (PEN-002) |
 | `apps/*/wrangler.toml`, `.github/workflows/` | Workers da API e da SPA; CI, preview por PR e deploy |
@@ -29,7 +30,7 @@ Landing page de captação de leads do **Aprende+** (plataforma educacional, pú
 3. `admin.js` consulta e exclui leads via API admin com o token.
 
 ## Convenções
-- Functions exportam `onRequestGet`/`onRequestPost`/`onRequestDelete` e respondem JSON `{ ok, message, ... }` com helper `json()` local.
+- Handlers da landing são `(request, env) => Response` em `legacy/rotas/` e respondem JSON `{ ok, message, ... }` com helper `json()` local.
 - Consultas SQL sempre com `prepare(...).bind(...)`.
 - Conteúdo dinâmico no painel passa por `esc()` antes de entrar em `innerHTML`.
 - Não colocar segredos em HTML/JS/repositório.
@@ -50,6 +51,6 @@ Objetivo: plataforma educacional de atividades gamificadas (BNCC/PE) com interfa
 - A landing/leads descrita acima continua em produção até a v1.0.
 
 ## Como rodar
-- Requer Node 22+ e pnpm 12 (`corepack enable`). `pnpm install` · `pnpm dev` (API :8787 + SPA :5173) · `pnpm test` · `pnpm build` · `pnpm lint` · `pnpm typecheck` · `pnpm check:wrangler`.
-- Landing legada: `pnpm dev:legacy` (só estáticos; `/api/*` não responde até a S1-BE-05). Abrir `index.html` direto também serve para ver o visual.
+- Requer Node 22+ e pnpm 12 (`corepack enable`). `pnpm install` · `pnpm dev` (API :8787 + SPA :5173) · `pnpm test` · `pnpm test:e2e:acesso` (E2E de cadastro/consentimento/login; ver `docs/qa/convencoes.md`) · `pnpm build` · `pnpm lint` · `pnpm typecheck` · `pnpm check:wrangler`.
+- Landing legada: `pnpm dev:legacy` (precisa de `.dev.vars` e de `wrangler d1 migrations apply DB --local` uma vez); `pnpm smoke:legado` valida tudo com `wrangler dev` de verdade.
 - Deploy: só via GitHub Actions (`deploy.yml`: tag `v*` ou manual) com `wrangler deploy --env <amb>`; preview por PR em `preview.yml`. Detalhes: `docs/devops/ambientes.md`.

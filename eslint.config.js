@@ -14,17 +14,17 @@ export default defineConfig([
     'test-results/**',
     // Gerado pelo `msw init` (service worker da API simulada); não é código do projeto.
     'apps/web/public/mockServiceWorker.js',
-    // Landing legada congelada (só correções de segurança/LGPD); migra na S1-BE-05.
-    'functions/**',
-    'index.html',
-    'admin.html',
-    'script.js',
-    'admin.js',
+    // Front-end da landing legada (congelado até a v1.0; só correções de segurança/LGPD). O Worker dela (legacy/) é lintado.
+    'public/**',
   ]),
   js.configs.recommended,
   tseslint.configs.recommended,
   {
     files: ['apps/api/**/*.ts'],
+    languageOptions: { globals: globals.serviceworker },
+  },
+  {
+    files: ['legacy/**/*.js'],
     languageOptions: { globals: globals.serviceworker },
   },
   {

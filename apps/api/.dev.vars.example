@@ -1,3 +1,7 @@
 # API (wrangler dev em apps/api). Copie para .dev.vars (ignorado pelo git) e preencha.
-TURNSTILE_SECRET=
+# Local: qualquer string aleatória serve (openssl rand -hex 32). Em staging/produção: `wrangler secret put <NOME> --env <amb>`.
 IP_HASH_SECRET=
+# HMAC do apelidoToken (>= 32 caracteres)
+APP_SECRET=
+# Turnstile: em dev use as chaves de teste da Cloudflare (1x0000000000000000000000000000000AA = sempre passa)
+TURNSTILE_SECRET=

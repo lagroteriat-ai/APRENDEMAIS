@@ -28,9 +28,9 @@ Node 22+ (`.nvmrc` = 24) e pnpm 12 (`corepack enable` instala a versão de `pack
 | Caminho | Função |
 |---|---|
 | `apps/api`, `apps/web`, `packages/*` | plataforma nova (ADR-001) |
-| `index.html`, `style.css`, `script.js`, `admin.*` | landing legada e painel de leads |
-| `functions/` | API da landing no formato Pages Functions — migra para Worker na S1-BE-05 |
-| `wrangler.toml` | config do Worker da landing (dev/staging/produção) |
+| `public/` | front-end da landing legada e do painel de leads (`index.html`, `script.js`, `admin.*`, `assets/`) |
+| `legacy/` | Worker da landing: `worker.js` (rotas `/api/*`), `rotas/` (leads, prototype-access, admin-leads), `lib/` (HMAC, comparação em tempo constante, Turnstile, rate limit) |
+| `wrangler.toml` | config do Worker da landing (`main`, `[build]`, `[assets]`, D1, rate limit; dev/staging/produção) |
 | `schema.sql`, `migrations/` | tabela `leads` (manter os dois em sincronia) |
 | `scripts/` | `build-legacy.mjs` (gera `dist-legacy/`), `check-placeholders.mjs` |
 | `docs/`, `data/` | segurança/LGPD, UX, QA, DevOps, currículo |
@@ -51,8 +51,7 @@ Fluxo: o visitante preenche o formulário → `POST /api/leads` valida e grava (
 em `script.js`). O painel `/admin.html` usa `ADMIN_TOKEN` (`GET`/`DELETE /api/admin/leads`); em produção, considere
 também o Cloudflare Access.
 
-Até a S1-BE-05 a API da landing existe apenas em `functions/` (Pages Functions): o Worker legado serve só os estáticos
-e `/api/*` não responde nele. Por isso o deploy da legada é sempre explícito (alvo `legada`).
+O Worker (`legacy/worker.js`) recebe só `/api/*` (`assets.run_worker_first`) e responde 404/405 em JSON; o resto sai direto de `dist-legacy/`,\nque o `[build]` do `wrangler.toml` regenera a cada `wrangler dev` / `wrangler deploy` (também no Workers Builds, que só roda `npx wrangler deploy`).\nBindings e secrets vêm do `wrangler` (D1 `DB`, `RATE_LIMITER`; `ADMIN_TOKEN`, `LEAD_SECRET`, `TURNSTILE_SECRET` via `wrangler secret put`) — não há mais Pages.\nDefina `TURNSTILE_SITEKEY` (chave pública do widget) no ambiente do build, senão vale a chave de teste e o cadastro não passa em produção.\n\nLocal: `pnpm dev:legacy` (crie `.dev.vars` com os três secrets e rode `wrangler d1 migrations apply DB --local` uma vez).\nValidação completa com `wrangler dev` de verdade: `pnpm smoke:legado` (estáticos, cadastro, prototype-access, painel e o que NÃO é servido).
 
 ## Privacidade (LGPD)
 O Aprende+ pode envolver menores de idade: colete só o necessário e mantenha o aviso de privacidade publicado. O

@@ -1,10 +1,10 @@
-import { gerarAccessToken } from '../_lib/seguranca.js';
-import { dentroDoLimite, ipDoCliente, validarTurnstile } from '../_lib/protecao.js';
+import { gerarAccessToken } from '../lib/seguranca.js';
+import { dentroDoLimite, ipDoCliente, validarTurnstile } from '../lib/protecao.js';
 
-export async function onRequestPost(context) {
+export async function criarLead(request, env) {
   try {
-    const ip = ipDoCliente(context.request);
-    if (!(await dentroDoLimite(context.env, ip))) {
+    const ip = ipDoCliente(request);
+    if (!(await dentroDoLimite(env, ip))) {
       return json(
         { ok: false, message: 'Muitas tentativas em pouco tempo. Aguarde um minuto e tente novamente.' },
         429,
@@ -12,7 +12,7 @@ export async function onRequestPost(context) {
       );
     }
 
-    const body = await context.request.json();
+    const body = await request.json();
     const nome = String(body.nome || '').trim();
     const sobrenome = String(body.sobrenome || '').trim();
     const email = String(body.email || '').trim().toLowerCase();
@@ -29,21 +29,21 @@ export async function onRequestPost(context) {
       return json({ ok: false, message: 'Digite um e-mail válido.' }, 400);
     }
 
-    if (!context.env.DB) {
+    if (!env.DB) {
       return json({ ok: false, message: 'Banco de dados não configurado no Cloudflare.' }, 500);
     }
 
-    if (!context.env.LEAD_SECRET) {
+    if (!env.LEAD_SECRET) {
       console.error('LEAD_SECRET não configurado.');
       return json({ ok: false, message: 'Serviço indisponível no momento.' }, 500);
     }
 
-    if (!context.env.TURNSTILE_SECRET) {
+    if (!env.TURNSTILE_SECRET) {
       console.error('TURNSTILE_SECRET não configurado.');
       return json({ ok: false, message: 'Serviço indisponível no momento.' }, 500);
     }
 
-    const verificacao = await validarTurnstile(context.env, body.turnstileToken, ip);
+    const verificacao = await validarTurnstile(env, body.turnstileToken, ip);
     if (verificacao === 'ausente') {
       return json({ ok: false, message: 'Confirme que você não é um robô para continuar.' }, 400);
     }
@@ -54,28 +54,28 @@ export async function onRequestPost(context) {
       return json({ ok: false, message: 'Não foi possível validar a verificação de segurança agora. Tente novamente em instantes.' }, 503);
     }
 
-    const existing = await context.env.DB.prepare(
+    const existing = await env.DB.prepare(
       'SELECT id FROM leads WHERE lower(email) = ? OR telefone = ? LIMIT 1'
     ).bind(email, telefone).first();
 
     let leadId;
 
     if (existing) {
-      await context.env.DB.prepare(
+      await env.DB.prepare(
         `UPDATE leads
          SET nome = ?, sobrenome = ?, telefone = ?, perfil = ?, consentimento = 1
          WHERE id = ?`
       ).bind(nome, sobrenome, telefone, perfil, existing.id).run();
       leadId = existing.id;
     } else {
-      const result = await context.env.DB.prepare(
+      const result = await env.DB.prepare(
         `INSERT INTO leads (nome, sobrenome, email, telefone, perfil, consentimento)
          VALUES (?, ?, ?, ?, ?, 1)`
       ).bind(nome, sobrenome, email, telefone, perfil).run();
       leadId = result.meta.last_row_id;
     }
 
-    const accessToken = await gerarAccessToken(leadId, context.env.LEAD_SECRET);
+    const accessToken = await gerarAccessToken(leadId, env.LEAD_SECRET);
     return json({ ok: true, leadId, accessToken });
   } catch (error) {
     console.error('leads POST falhou:', error);

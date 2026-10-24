@@ -1,6 +1,6 @@
 node_modules/
 dist/
-#dist-legacy/
+dist-legacy/
 .wrangler/
 .dev.vars
 .dev.vars.*

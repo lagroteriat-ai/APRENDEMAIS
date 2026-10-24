@@ -16,11 +16,9 @@ import { buscarTokenValido, comandoConsumir, comandoSubstituir, estadoReenvio, g
 import type { Ctx } from '../tipos';
 import { corpoDe, enviarDepois, exigirTurnstile, segundosAte, turnstileObrigatorio, violouUnico } from './comum';
 
-const DIA_MS = 24 * 3600 * 1000;
-
 // ---------- avisos e apelido ----------
 
-export async function obterAvisosVigentes(c: Ctx): Promise<Response> {
+export async function obterAvisosVigentes(): Promise<Response> {
   return ok(AVISOS);
 }
 

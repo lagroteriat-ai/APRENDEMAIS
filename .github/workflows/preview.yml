@@ -56,6 +56,9 @@ jobs:
         run: pnpm build
       - name: Enviar versões (api, web, legada)
         if: steps.pre.outputs.pronto == 'true'
+        env:
+          # chave PÚBLICA do widget, usada no [build] da landing (wrangler.toml); sem ela vale a chave de teste
+          TURNSTILE_SITEKEY: ${{ vars.TURNSTILE_SITEKEY }}
         run: |
           set -o pipefail
           MSG="PR #${{ github.event.pull_request.number }} @ ${GITHUB_SHA::7}"

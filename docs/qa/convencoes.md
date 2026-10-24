@@ -10,7 +10,8 @@ Complementa `estrategia.md`. Cada dono escreve os testes das suas features segui
 | `pnpm --filter @aprendemais/<pkg> test` | Só um pacote (`vitest run`; use `vitest` dentro da pasta para modo watch) |
 | `pnpm test:e2e:install` | Baixa o Chromium do Playwright (1ª vez) |
 | `pnpm test:e2e` | Playwright; sobe a landing sozinho (`:8788`). `E2E_TODOS_NAVEGADORES=1` = + Firefox, WebKit, móvel |
-| `pnpm exec playwright show-report` | Abre o último relatório HTML |
+| `pnpm test:e2e:acesso` | E2E do fluxo de acesso (S1-QA-03); sobe API `wrangler dev` (:8787) + SPA compilada (:4173), D1/KV novos a cada execução. `E2E_BASE_URL=https://…` = contra preview/staging, sem servidores locais |
+| `pnpm exec playwright show-report` | Abre o último relatório HTML (`playwright-report/acesso` para o de acesso) |
 
 ## Onde ficam e como se chamam
 | Tipo | Local | Nome | Ambiente |
@@ -35,6 +36,9 @@ Casos do critério de aceite (401/403/404/409/429, menor de idade) entram como `
 - **Acessibilidade em componentes:** `esperarSemViolacoes(container)` (`apps/web/src/testes/axe.ts`, `packages/ui/src/test/axe.ts`).
 - **E2E:** importe `test`/`expect`/`esperarSemViolacoesAxe` de `tests/e2e/base.ts`. O `test` de lá **bloqueia hosts externos**
   (hermético). Axe em toda página nova (WCAG 2.1 AA, sérias/críticas).
+- **E2E de acesso** (`tests/e2e/acesso/`, config `playwright.acesso.config.ts`): importe de `./base` (cliente `Api` do contrato, fixtures `api`/`novoCliente`/`ip`, `soLocal`) e de `./apoio` (cadastro pela tela ou API, caixa de saída de e-mail `esperarEmail`, `vencerLinksDe`/`vencerSessao` para simular prazos no banco e KV locais). Regras:
+  cada teste usa um IP próprio (`CF-Connecting-IP`), pois os limites são por IP e por conta; **nunca** reutilize um nome de usuário inexistente (use `apelidoInexistente()`);
+  o que depende de banco, caixa de saída ou IP forjado chama `soLocal(motivo)`; defeito aberto vira `test.fail(true, 'PEN-nnn: …')` (o Playwright avisa quando for corrigido) e fixme é só para tela que não existe.
 - Segredos de teste ficam em `apps/api/vitest.config.ts` (valores descartáveis); nunca em `.dev.vars` real.
 
 ## CI

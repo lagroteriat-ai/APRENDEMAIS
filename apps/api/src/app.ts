@@ -3,6 +3,7 @@ import { Hono, type MiddlewareHandler } from 'hono';
 import type { z } from 'zod';
 import { exigeAcesso, type Acesso } from './acesso';
 import { criarDepsPadrao } from './deps';
+import { ProvedorEmailFake } from './email/provedor';
 import type { Env } from './env';
 import { chaveOpaca } from './limite';
 import { ErroApp, ok, registrarErro, respostaErro, validacao } from './lib/http';
@@ -116,16 +117,7 @@ export function criarApp(overrides: Partial<Deps> = {}): Hono<AppEnv> {
   // Ferramenta de desenvolvimento (fora do contrato): lê a "caixa de saída" de e-mails. Só existe com ENVIRONMENT=dev.
   api.get('/dev/outbox', async c => {
     if (c.env.ENVIRONMENT !== 'dev') throw new ErroApp('NOT_FOUND');
-    const para = c.req.query('para')?.toLowerCase();
-    const { keys } = await c.env.KV.list({ prefix: 'outbox:' });
-    const itens = [];
-    for (const k of keys) {
-      const bruto = await c.env.KV.get(k.name);
-      if (!bruto) continue;
-      const m = JSON.parse(bruto) as { para: string };
-      if (!para || m.para.toLowerCase() === para) itens.push(m);
-    }
-    return ok(itens);
+    return ok(await new ProvedorEmailFake(c.env.KV).listar(c.req.query('para')));
   });
 
   app.route('/api/v1', api);

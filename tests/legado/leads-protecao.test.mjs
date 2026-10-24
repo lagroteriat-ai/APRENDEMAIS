@@ -1,7 +1,7 @@
 // PEN-004: testes de Turnstile + rate limit em POST /api/leads. Rodar: node --test tests/legado
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { onRequestPost } from '../../functions/api/leads.js';
+import { criarLead } from '../../legacy/rotas/leads.js';
 
 const corpoValido = {
   nome: 'Ana', sobrenome: 'Silva', email: 'ana@example.com',
@@ -34,7 +34,7 @@ async function enviar(body, env, ip = '203.0.113.9') {
     headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip },
     body: JSON.stringify(body)
   });
-  const resposta = await onRequestPost({ request, env });
+  const resposta = await criarLead(request, env);
   return { status: resposta.status, dados: await resposta.json(), headers: resposta.headers };
 }
 

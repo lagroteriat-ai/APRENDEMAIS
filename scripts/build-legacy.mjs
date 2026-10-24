@@ -1,5 +1,5 @@
 // Gera dist-legacy/ com SOMENTE os arquivos públicos da landing (PEN-016).
-// Lista explícita (allowlist): docs/, apps/, functions/, *.sql e *.md nunca são publicados.
+// Lista explícita (allowlist): docs/, apps/, legacy/, *.sql e *.md nunca são publicados.
 import { access, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

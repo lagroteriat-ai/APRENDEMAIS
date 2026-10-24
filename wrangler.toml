@@ -3,16 +3,23 @@
 # Estáticos: só dist-legacy/ (gerado por `pnpm build:legacy`) — nunca a raiz do repositório.
 # Placeholders "COLOQUE_*" (PEN-002): ver docs/devops/ambientes.md §3 para criar os recursos.
 # Secrets (sem valores aqui; `wrangler secret put <NOME> [--env X]`): ADMIN_TOKEN, LEAD_SECRET, TURNSTILE_SECRET.
-# TODO S1-BE-05: adicionar `main` (entrypoint fetch) e `assets.run_worker_first = ["/api/*"]`;
-# até lá o Worker serve só a landing estática e /api/* NÃO funciona (a API vive em functions/, só Pages).
+# Entrypoint: legacy/worker.js (rotas /api/*). `assets.run_worker_first = ["/api/*"]` manda só /api/* para o Worker;
+# o resto sai direto de dist-legacy/. `[build]` gera dist-legacy/ antes de cada `wrangler dev|deploy` (inclusive no
+# Workers Builds, que só roda `npx wrangler deploy`). Defina TURNSTILE_SITEKEY (chave pública) no ambiente do build:
+# sem ela vale a chave de teste da Cloudflare e o cadastro não passa em produção.
 
 name = "aprende-mais-dev"
+main = "legacy/worker.js"
 compatibility_date = "2026-09-29"
 workers_dev = true
 preview_urls = true
 
+[build]
+command = "node scripts/build-legacy.mjs"
+
 [assets]
 directory = "./dist-legacy"
+run_worker_first = ["/api/*"]
 
 [[d1_databases]]
 binding = "DB"
@@ -33,6 +40,7 @@ preview_urls = true
 
 [env.staging.assets]
 directory = "./dist-legacy"
+run_worker_first = ["/api/*"]
 
 [[env.staging.d1_databases]]
 binding = "DB"
@@ -52,6 +60,7 @@ preview_urls = false # produção sem Preview URLs
 
 [env.production.assets]
 directory = "./dist-legacy"
+run_worker_first = ["/api/*"]
 
 [[env.production.d1_databases]]
 binding = "DB"

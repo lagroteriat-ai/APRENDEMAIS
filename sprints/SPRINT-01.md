@@ -41,7 +41,7 @@
 | S1-SEG-03 | SEG | Turnstile + rate limit na landing | 2 | DEV-01, BE-05 | Sonnet / médio | ☐ |
 | S1-PED-02 | PED | Linguagem de consentimento/privacidade | 2 | SEG-01 | Sonnet / baixo | ☐ |
 | S1-QA-02 | QA | Base de testes automatizados | 2 | QA-01, DEV-01 | Sonnet / médio | ☐ |
-| S1-QA-03 | QA | E2E cadastro → consentimento → login | 3 | BE-03, BE-04, FE-02 | Sonnet / médio | ☐ |
+| S1-QA-03 | QA | E2E cadastro → consentimento → login | 3 | BE-03, BE-04, FE-02 | Sonnet / médio | ☑ |
 | S1-SEG-04 | SEG | Revisão de segurança do auth | 3 | BE-03, BE-04, SEG-03 | Opus / alto | ☐ |
 | S1-UX-02 | UX | Revisão UX/acessibilidade | 3 | FE-02 | Sonnet / baixo | ☐ |
 | S1-DEV-02 | DEV | Staging e runbook | 3 | DEV-01, BE-03 | Sonnet / médio | ☐ |

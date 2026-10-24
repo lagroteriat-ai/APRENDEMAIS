@@ -44,6 +44,8 @@ jobs:
       - run: pnpm build
       # Valida os wrangler.toml (staging/prod) sem deploy nem credenciais.
       - run: pnpm check:wrangler
+      # Worker da landing de verdade (wrangler dev + D1 local): API, painel e "docs/ e apps/ não são servidos" (SR-21).
+      - run: pnpm smoke:legado
 
   e2e:
     name: e2e (Playwright · Chromium)

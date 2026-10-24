@@ -85,3 +85,11 @@ Registre decisões duráveis aqui (curtas). Uma decisão não é reaberta sem no
   - **Testes ratificados:** unitário/integração do Worker com Vitest + `@cloudflare/vitest-pool-workers`; componentes com Testing Library + jsdom + axe; E2E com Playwright. Instalar cada ferramenta junto do primeiro teste que a usa. Regressão visual: adiada (nightly, S2+).
   - **Deploy:** `wrangler.toml` com `[env.staging]`/`[env.production]` (topo = dev); preview por PR = `wrangler versions upload --env staging --preview-alias pr-N`; produção só por tag `v*`/manual. Detalhes em `docs/devops/ambientes.md`.
 - Consequências: `pnpm build` roda o build de todo pacote (um `build` quebrado derruba o CI); QA/BE seguem `catalog:` ao adicionar dependências.
+
+## ADR-004 — Hash de senha Argon2id (JS) e contadores em Durable Object
+- Data: 2026-10-23 · Autor: BE · Status: aceita · Ajusta ADR-001 §4 (PBKDF2) e o SR-10 do threat model
+- Contexto: o ADR-001 previu PBKDF2-SHA256 ≥600 mil iterações. O WebCrypto do workerd limita o PBKDF2 a 100 mil iterações e não tem Argon2/scrypt; WASM gerado em runtime é bloqueado no Workers. A tarefa S1-BE-03 pede Argon2/scrypt.
+- Decisão:
+  - **Senha:** Argon2id (OWASP: m=19 MiB, t=2, p=1) em JS puro com `@noble/hashes` (auditada). Formato em `usuarios.credencial_hash`: `argon2id$v=19$m=…,t=…,p=1$<sal>$<hash>` (os parâmetros ficam no próprio hash, então dá para subir o custo sem migration). Medido: ≈230 ms de CPU por hash em workerd local → exige plano Workers Paid; login/cadastro/recuperação só gastam CPU depois do rate limit, e conta inexistente paga o mesmo custo (SR-08).
+  - **Rate limit:** Durable Object `Limitador` (contador atômico por chave HMAC; janela fixa). KV não serve (consistência eventual) e não há tabela para isso no schema do DAD. Login: 3 falhas por conta **ou** IP → Turnstile; 10 por conta → 429 por 15 min; por IP o bloqueio duro é 100 (uma escola inteira atrás do mesmo NAT não pode ser bloqueada por 10 erros).
+- Consequências: SR-10 deve ler "Argon2id ≥ m=19 MiB, t=2" em vez de PBKDF2 (SEG); DEV precisa do plano Paid e dos novos secrets/vars (`docs/devops/ambientes.md`); alterar o custo exige reavaliar o limite de CPU do Worker.

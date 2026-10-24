@@ -1,19 +1,19 @@
-import { adminAutorizado } from '../../_lib/seguranca.js';
+import { adminAutorizado } from '../lib/seguranca.js';
 
-export async function onRequestGet(context) {
-  if (!(await adminAutorizado(context.request, context.env))) {
+export async function listarLeads(request, env) {
+  if (!(await adminAutorizado(request, env))) {
     return json({ ok: false, message: 'Não autorizado.' }, 401);
   }
 
   try {
-    const url = new URL(context.request.url);
+    const url = new URL(request.url);
     const q = (url.searchParams.get('q') || '').trim();
     const limit = Math.min(Math.max(Number(url.searchParams.get('limit') || 500), 1), 1000);
 
     let result;
     if (q) {
       const like = `%${q}%`;
-      result = await context.env.DB.prepare(
+      result = await env.DB.prepare(
         `SELECT id, nome, sobrenome, email, telefone, perfil,
                 data_cadastro, acessou_prototipo, data_acesso_prototipo
          FROM leads
@@ -22,7 +22,7 @@ export async function onRequestGet(context) {
          LIMIT ?`
       ).bind(like, like, like, like, limit).all();
     } else {
-      result = await context.env.DB.prepare(
+      result = await env.DB.prepare(
         `SELECT id, nome, sobrenome, email, telefone, perfil,
                 data_cadastro, acessou_prototipo, data_acesso_prototipo
          FROM leads
@@ -31,7 +31,7 @@ export async function onRequestGet(context) {
       ).bind(limit).all();
     }
 
-    const stats = await context.env.DB.prepare(
+    const stats = await env.DB.prepare(
       `SELECT
          COUNT(*) AS total,
          SUM(CASE WHEN date(data_cadastro) = date('now') THEN 1 ELSE 0 END) AS hoje,
@@ -46,17 +46,17 @@ export async function onRequestGet(context) {
   }
 }
 
-export async function onRequestDelete(context) {
-  if (!(await adminAutorizado(context.request, context.env))) {
+export async function excluirLead(request, env) {
+  if (!(await adminAutorizado(request, env))) {
     return json({ ok: false, message: 'Não autorizado.' }, 401);
   }
 
   try {
-    const body = await context.request.json();
+    const body = await request.json();
     const id = Number(body.id);
     if (!id) return json({ ok: false, message: 'ID inválido.' }, 400);
 
-    await context.env.DB.prepare('DELETE FROM leads WHERE id = ?').bind(id).run();
+    await env.DB.prepare('DELETE FROM leads WHERE id = ?').bind(id).run();
     return json({ ok: true });
   } catch (error) {
     console.error('admin/leads DELETE falhou:', error);
