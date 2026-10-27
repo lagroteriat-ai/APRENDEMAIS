@@ -1,6 +1,6 @@
 import type { LoginRequest, LoginResultado, Papel, PapelAtivoRequest } from '@aprendemais/shared-types';
 import { LIMITES } from '../config';
-import { chaveOpaca, consultar, erroLimite, registrar, zerar } from '../limite';
+import { chaveOpaca, devolver, erroLimite, registrar, zerar } from '../limite';
 import { ErroApp, ok } from '../lib/http';
 import { verificarSenha, verificarSenhaFalsa } from '../lib/senha';
 import {
@@ -34,24 +34,34 @@ export async function entrar(c: Ctx): Promise<Response> {
   const identificador = corpo.identificador.trim().toLowerCase();
   const chaveConta = await chaveOpaca(env, `login:${identificador}`);
 
-  // limites por conta (inclusive inexistente) e por IP, antes de gastar CPU com o hash (T10)
+  // F-01: a tentativa é contada ANTES do hash, de forma atômica (um DO por chave), e a decisão usa a contagem que já a inclui.
+  // Assim N requisições paralelas recebem contagens distintas (1..N) e só as primeiras chegam a gastar CPU com Argon2id.
   const [porIp, porConta] = await Promise.all([
-    consultar(env, agoraMs, 'login-ip', c.var.ipHash),
-    consultar(env, agoraMs, 'login-conta', chaveConta)
+    registrar(env, agoraMs, 'login-ip', c.var.ipHash, L.janelaSeg),
+    registrar(env, agoraMs, 'login-conta', chaveConta, L.janelaSeg)
   ]);
-  if (porConta.contagem >= L.bloqueioConta) throw erroLimite(porConta.reiniciaEmSeg);
-  if (porIp.contagem >= L.bloqueioIp) throw erroLimite(porIp.reiniciaEmSeg);
-  if (porConta.contagem >= L.desafioApos || porIp.contagem >= L.desafioApos) await exigirTurnstile(c, corpo.turnstileToken, true);
+  // Só falha verificada fica contada: tentativa barrada (429/428) ou bem-sucedida devolve o ponto (senão uma escola atrás do
+  // mesmo IP pediria desafio a cada 4 logins corretos).
+  const devolverTentativa = () => Promise.all([devolver(env, agoraMs, 'login-ip', c.var.ipHash), devolver(env, agoraMs, 'login-conta', chaveConta)]);
+  if (porConta.contagem > L.bloqueioConta || porIp.contagem > L.bloqueioIp) {
+    await devolverTentativa();
+    throw erroLimite(porConta.contagem > L.bloqueioConta ? porConta.reiniciaEmSeg : porIp.reiniciaEmSeg);
+  }
+  if (porConta.contagem > L.desafioApos || porIp.contagem > L.desafioApos) {
+    try {
+      await exigirTurnstile(c, corpo.turnstileToken, true);
+    } catch (e) {
+      await devolverTentativa();
+      throw e;
+    }
+  }
 
   const usuario = await buscarParaLogin(c, identificador);
   const senhaOk = usuario?.credencial_hash
     ? await verificarSenha(corpo.senha, usuario.credencial_hash)
     : await verificarSenhaFalsa(corpo.senha, env); // mesmo custo para conta inexistente (SR-08)
-  if (!usuario || !senhaOk) {
-    await Promise.all([registrar(env, agoraMs, 'login-ip', c.var.ipHash, L.janelaSeg), registrar(env, agoraMs, 'login-conta', chaveConta, L.janelaSeg)]);
-    throw new ErroApp('UNAUTHENTICATED', MSG_LOGIN);
-  }
-  await zerar(env, 'login-conta', chaveConta);
+  if (!usuario || !senhaOk) throw new ErroApp('UNAUTHENTICATED', MSG_LOGIN);
+  await Promise.all([zerar(env, 'login-conta', chaveConta), devolver(env, agoraMs, 'login-ip', c.var.ipHash)]);
 
   // nova sessão sempre: a anterior deste navegador (se houver) morre (SR-05)
   const anterior = lerTokenDoCookie(c.req.header('Cookie'));

@@ -149,13 +149,15 @@ describe('RQ-30/RQ-31 — nenhum dado pessoal em log, auditoria ou chaves de ide
 
 describe('ferramenta de desenvolvimento /dev/outbox', () => {
   it('em dev lê a caixa de saída (e-mails gravados no KV); fora de dev não existe', async () => {
-    const dev = new Cliente(criarApp(), [], env); // dependências padrão: e-mail vai para o KV
+    const dev = new Cliente(criarApp(), [], env, '127.0.0.1'); // dependências padrão: e-mail vai para o KV
     await cadastrarAluno(dev);
     const caixa = await dev.get('/dev/outbox');
     expect(caixa.status).toBe(200);
     expect(caixa.corpo.data).toHaveLength(1);
     expect(caixa.corpo.data[0]).toMatchObject({ tipo: 'E1', link: expect.stringContaining('/responsavel/autorizar?t=') });
     expect((await dev.get('/dev/outbox?para=outro@example.test')).corpo.data).toHaveLength(0);
+    // PEN-056: com IP de cliente real (não loopback) o outbox não existe, mesmo em dev
+    expect((await dev.novoNavegador().get('/dev/outbox')).status).toBe(404);
 
     for (const ambiente of ['staging', 'production']) {
       const c = new Cliente(criarApp(), [], comEnv({ ENVIRONMENT: ambiente }));

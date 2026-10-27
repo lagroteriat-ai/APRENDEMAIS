@@ -31,6 +31,14 @@ export class Limitador extends DurableObject<Env> {
     return estado(j, agoraMs);
   }
 
+  /** Desfaz uma contagem de `registrar` (tentativa que não virou falha verificada). Não desce de 0 nem abre janela. */
+  async devolver(agoraMs: number): Promise<void> {
+    const j = await this.ctx.storage.get<Janela>('j');
+    if (!j || j.ate <= agoraMs || j.n <= 0) return;
+    j.n -= 1;
+    await this.ctx.storage.put('j', j);
+  }
+
   async consultar(agoraMs: number): Promise<EstadoLimite> {
     const j = await this.ctx.storage.get<Janela>('j');
     if (!j || j.ate <= agoraMs) return { contagem: 0, reiniciaEmSeg: 0 };

@@ -11,7 +11,10 @@ Base: `docs/seguranca/lgpd-requisitos.md` (RQ-xx) e `docs/ux/principios.md` (tom
 | Aviso de privacidade — responsáveis | `aviso-resp-v1` | 1.0 | link em T06 e nos e-mails; página `/privacidade/responsaveis` |
 | Aviso para estudantes — EF1 / EF2 / EM | `aviso-aluno-ef1-v1`, `aviso-aluno-ef2-v1`, `aviso-aluno-em-v1` | 1.0 | T04 (conforme o ano escolar informado em T02) |
 | Termo de consentimento parental | `consent-v1` | 1.0 | T06 |
-| E-mails E1–E4 | `email-e1-v1` … `email-e4-v1` | 1.0 | envio pela API |
+| Aviso para professores/gestores | `aviso-prof-v1` | 1.0 | cadastro de professor (T14/T15) e e-mail E3 |
+| E-mails E1–E4 e E6 | `email-e1-v1` … `email-e4-v1`, `email-e6-v1` | 1.0 | envio pela API |
+
+**Ids × API:** `apps/api/src/config.ts` hoje publica `aluno-2026-10-v1`, `responsavel-2026-10-v1`, `professor-2026-10-v1`. Os ids acima são os de PED; BE decide se adota ou mantém os seus (PEDIDO na §8). O que importa é que cada consentimento guarde o id e o hash do texto exato exibido (§3.3).
 
 Placeholders globais: `{{controlador}}` = [RAZÃO SOCIAL/CNPJ DO CONTROLADOR — a definir] ⚖ · `{{canal_privacidade}}` = [E-MAIL DEDICADO — a definir] · `{{encarregado}}` = [NOME/CONTATO DO ENCARREGADO (DPO) — a definir] ⚖ · `{{apelido}}` · `{{data}}` · `{{link}}`.
 
@@ -109,6 +112,17 @@ Dúvidas: {{canal_privacidade}}.
 
 Observação para BE/SEG: para 16–17 anos o consentimento parental segue exigido (padrão conservador, RQ-02) até o jurídico decidir diferente. ⚖
 
+### 2.4 Professores e gestores (≥ 18) — `aviso-prof-v1`
+*Complementa o RQ-09 (antes só listado como pendente). Base legal por finalidade ⚖: execução do serviço contratado/solicitado; consentimento não é a base padrão aqui.*
+
+**Aviso de privacidade — professores e gestores**
+- **O que guardamos:** nome, e-mail institucional, escola e turmas. Não pedimos CPF, endereço, telefone pessoal nem foto.
+- **Para quê:** criar a sua conta, ligar você às suas turmas e mostrar o progresso dos alunos vinculados.
+- **Alunos:** você só vê dados individuais de alunos que estão nas suas turmas, e o acesso termina quando o aluno sai da turma. Não exporte nem compartilhe esses dados fora do Aprende+. Os acessos ficam registrados.
+- **Sem anúncios, sem venda de dados.**
+- **Seus direitos:** acessar, corrigir e excluir os seus dados em até 15 dias: {{canal_privacidade}} · Encarregado: {{encarregado}}.
+- ⚖ Papel da escola (controladora ou operadora) e se este aviso é substituído por contrato/DPA (RQ-10, PEN-012).
+
 ---
 
 ## 3. Termo de consentimento parental (`consent-v1`)
@@ -128,7 +142,7 @@ Exibido em T06 (e arquivado como texto exato aceito). **Qualquer alteração de 
 - Caixa do ranking **separada**, desmarcada, e **oculta no Sprint 1** (recurso inexistente); quando existir, é nova versão do termo (`consent-v2`).
 
 ### 3.3 Registro e versionamento (para BE-02/DAD)
-Gravar por consentimento: `consent_id` (`consent-v1`), `texto_hash` (SHA-256 do texto exato exibido), `aviso_id` (`aviso-resp-v1`), `aluno_id`, `nome_responsavel`, `email_responsavel` (ou hash, a definir ⚖), `acao` (`autorizado`/`recusado`/`revogado`), `ranking_optin` (bool), `data_hora_utc`, `ip_truncado`/hash (RQ-30). Textos publicados em `docs/pedagogia/versoes/consent-v1.md` (imutável; mudanças viram nova versão). Revogação cria novo registro, não apaga o anterior (prova do consentimento; ⚖ confirmar retenção do registro após exclusão).
+Gravar por consentimento: `consent_id` (`consent-v1`), `texto_hash` (SHA-256 do texto exato exibido), `aviso_id` (`aviso-resp-v1`), `aluno_id`, `nome_responsavel`, `email_responsavel` (ou hash, a definir ⚖), `acao` (`autorizado`/`recusado`/`revogado`), `ranking_optin` (bool), `data_hora_utc`, `ip_truncado`/hash (RQ-30). Ao publicar (placeholders e ⚖ resolvidos), o texto final é congelado em `docs/pedagogia/versoes/consent-v1.md` (imutável; mudanças viram nova versão) — esse arquivo ainda **não existe**, de propósito: congelar agora fixaria o hash de um texto com lacunas. Revogação cria novo registro, não apaga o anterior (prova do consentimento; ⚖ confirmar retenção do registro após exclusão).
 
 Pontos ⚖ do termo: suficiência de "caixa + nome + e-mail" como consentimento específico/esforço razoável (RQ-04, art. 14 §5); validade para adolescentes; guardar nome/e-mail do responsável após exclusão; ranking como finalidade separada.
 
@@ -162,7 +176,7 @@ Regras (fluxos.md §10): texto simples + HTML mínimo, sem imagens de rastreamen
 >
 > Registramos em {{data}} a sua autorização para o uso do Aprende+ por **{{apelido}}**. Ele(a) já pode entrar.
 >
-> Guarde este e-mail: o link abaixo permite ver a autorização e **retirá-la quando quiser**, sem precisar de senha. Se retirar, os dados são excluídos em até 15 dias.
+> Guarde este e-mail: o link abaixo permite ver a autorização e **retirá-la quando quiser**, sem precisar de senha. Se retirar, os dados são excluídos em até 15 dias. O link vale por **30 dias**; depois disso, peça um novo pelo e-mail do responsável.
 >
 > **[Gerenciar autorização]** {{link}}
 >
@@ -181,9 +195,9 @@ Regras (fluxos.md §10): texto simples + HTML mínimo, sem imagens de rastreamen
 >
 > **[Confirmar e-mail]** {{link}}
 >
-> O link vale por [PRAZO A DEFINIR (BE-02)] e só pode ser usado uma vez. Se o link expirar, peça um novo na tela de entrada.
+> O link vale por **7 dias** e só pode ser usado uma vez. Se o link expirar, peça um novo na tela de entrada.
 >
-> Ao confirmar, você concorda com o Aviso de privacidade (`aviso-aluno-em-v1` ou o de professores [A REDIGIR ⚖ RQ-09]).
+> Ao confirmar, você concorda com o Aviso de privacidade (`aviso-aluno-em-v1` para estudantes ou `aviso-prof-v1` para professores).
 >
 > {{rodape}}
 
@@ -197,7 +211,7 @@ Duas variantes (DU-03): conta de menor vai ao responsável.
 >
 > **[Criar nova senha]** {{link}}
 >
-> O link vale por [PRAZO A DEFINIR (SEG)] e só pode ser usado uma vez. Se não foi você, ignore este e-mail: sua senha continua a mesma.
+> O link vale por **30 minutos** e só pode ser usado uma vez. Se não foi você, ignore este e-mail: sua senha continua a mesma.
 >
 > {{rodape}}
 
@@ -208,11 +222,27 @@ Duas variantes (DU-03): conta de menor vai ao responsável.
 >
 > **[Criar nova senha]** {{link}}
 >
-> O link vale por [PRAZO A DEFINIR (SEG)] e só pode ser usado uma vez. Se ninguém pediu, ignore este e-mail: a senha continua a mesma.
+> O link vale por **30 minutos** e só pode ser usado uma vez. Se ninguém pediu, ignore este e-mail: a senha continua a mesma.
 >
 > {{rodape}}
 
 Revisão ⚖/SEG: não revelar a existência de conta (DU-06) — a tela de pedido sempre responde "Se existir uma conta, enviamos o link"; o e-mail só é enviado se a conta existe.
+
+### E6 — Já existe conta com este e-mail (`email-e6-v1`)
+Não consta em `fluxos.md` §10 (que lista E1–E4); nasceu em BE-02/BE-03 (DC-05). Vai ao dono do e-mail quando alguém tenta cadastrar um e-mail que já tem conta, para que a tela de cadastro nunca revele isso ao visitante. Limite de 3 por dia por e-mail.
+**Assunto:** Você já tem conta no Aprende+
+**Corpo:**
+> Olá!
+>
+> Alguém tentou criar uma conta no Aprende+ com este e-mail, mas você já tem uma.
+>
+> Se foi você e esqueceu a senha, é só criar uma nova: **[Recuperar acesso]** {{link}}
+>
+> Se não foi você, ignore este e-mail: nada foi alterado na sua conta.
+>
+> {{rodape}}
+
+Nota: o remetente do E6 pode ser um terceiro mal-intencionado; por isso o texto não diz quem tentou, nem de onde.
 
 ---
 
@@ -229,10 +259,10 @@ Revisão ⚖/SEG: não revelar a existência de conta (DU-06) — a tela de pedi
 ---
 
 ## 6. Resposta à PEN-009 (página/aviso de privacidade e exclusão na landing)
-**Situação verificada:** a landing atual (`index.html`/`script.js`, `functions/api/leads.js`) coleta nome, sobrenome, e-mail, telefone, perfil e um booleano de "consentimento", **sem** idade, sem consentimento parental e **sem página de privacidade nem fluxo de exclusão confirmados** (lgpd-requisitos §1). Não li o HTML da landing nesta tarefa; confirmar visualmente com FE.
+**Situação verificada (2026-10-26):** a landing (`public/index.html`, `public/script.js`, `legacy/rotas/leads.js`) coleta nome, sobrenome, e-mail, telefone e perfil. Em `public/index.html` a única menção é a caixa "Autorizo o registro dos meus dados para contato relacionado ao Aprende+ e ao teste do protótipo" (linha 51): **sem link ou página de privacidade, sem pergunta de idade e sem consentimento parental**. A exclusão existe só para o admin (`DELETE /api/admin/leads`); o titular não tem como pedir. (Busca textual por "privacidade/exclus" em `index.html`; não abri a página no navegador.)
 
 **Resposta / encaminhamento:**
-1. **Não existe base para dizer que há aviso e fluxo de exclusão.** Tratar PEN-009 como *confirmada: ausente* até FE/SEG provarem o contrário.
+1. **Confirmado: ausentes** o aviso de privacidade e o fluxo de exclusão do titular na landing. PEN-009 pode ser fechada como *constatação* e substituída pelas ações 2–4 abaixo.
 2. **Aviso mínimo para a landing** (texto proposto, ⚖): reaproveitar o aviso da §1 reduzido aos dados de lead (nome, sobrenome, e-mail, telefone, perfil; finalidade: contato e acesso ao protótipo; sem venda; direitos e canal `{{canal_privacidade}}`; retenção [PRAZO ⚖]), publicado em `/privacidade` e linkado ao lado da caixa de consentimento do formulário.
 3. **Exclusão:** até existir autoatendimento, o canal `{{canal_privacidade}}` atende pedidos de exclusão/correção em até 15 dias (RQ-14), com protocolo (RQ-18). O painel admin já exclui lead (`DELETE /api/admin/leads`); o procedimento operacional deve ser documentado por SEG/DEV.
 4. **Menores na landing:** como não há idade nem consentimento parental, **recomendação: não captar menores nesse formulário** (avisar "para responsáveis e professores" ou pedir idade) até alinhar a RQ-01..RQ-08. Leads já captados: PEN-014 (reconsentir, anonimizar ou excluir). ⚖
@@ -247,5 +277,16 @@ Revisão ⚖/SEG: não revelar a existência de conta (DU-06) — a tela de pedi
 6. Retenção: prazos de 12 meses/30 dias/15 dias; retenção do registro de consentimento após exclusão.
 7. ECA Digital (Lei 15.211/2025): exigências adicionais de linguagem, verificação etária e controles parentais.
 8. Aviso mínimo da landing e destino dos leads antigos — PEN-009/PEN-014.
-9. Aviso para professores/gestores (RQ-09), ainda não redigido.
+9. Base legal e papel da escola no aviso de professores/gestores (§2.4, RQ-09/RQ-10).
 10. Equivalência jurídica entre as versões simplificadas (EF1/EF2/EM) e o aviso integral.
+11. E6 (§4): confirmar que o aviso de "já existe conta" não expõe dado pessoal além do e-mail do destinatário.
+
+## 8. Substituição dos textos provisórios (PEN-044 e PEN-049) — por PEDIDO
+PED **não edita** `apps/web` nem `apps/api`. Os textos finais estão neste arquivo; a troca depende de aceite do dono (PEDIDOs em `COMUNICACAO.md`).
+| Pendência | Arquivo (dono) | Substituir por | Cuidado |
+|---|---|---|---|
+| PEN-044 | `apps/web/src/conteudo/avisos.ts` (FE) | `AVISO_ALUNO` → §2.1–2.3 por faixa (hoje há um só); `AVISO_PROFESSOR` → §2.4; aviso do responsável → §1; microcopy T06–T08 → §5; termo → §3.1 | A **versão** aceita continua vindo da API. Faixa EF1/EF2/EM exige o ano de T02. Usar as frases curtas do EF1 sem trocar o sentido. |
+| PEN-049 | `apps/api/src/servicos/email.ts` (BE) | E1–E4 e E6 → §4 (assunto e corpo; `{{rodape}}` em todos) | Prazos já alinhados: E1 7 d, E2 30 d, E3 7 d, E4 30 min. Hoje os e-mails são só texto; o rodapé e o "Gerenciar autorização" do E2 devem entrar. Não colocar PII no assunto além do apelido. |
+| — | `apps/api/src/config.ts` (BE) | ids de versão: `aluno-2026-10-v1` etc. × `aviso-*-v1`/`consent-v1` | Qualquer troca de texto = novo id e nova autorização. |
+
+**Antes de publicar:** os textos só valem após os itens ⚖ e o preenchimento dos `[COLCHETES]`; trocar o provisório pelo texto com placeholders abertos seria publicar uma lacuna.

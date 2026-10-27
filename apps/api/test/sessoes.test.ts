@@ -131,6 +131,26 @@ describe('POST /sessoes — limites e desafio (SR-09)', () => {
     expect((await entrar(cliente, 'UrsoGentil44')).status).toBe(200);
   });
 
+  it('F-01: 30 logins errados em paralelo → 3 senhas verificadas sem desafio, 7 pedem Turnstile, 20 levam 429', async () => {
+    const { cliente } = criarContexto();
+    await semearUsuario({ apelido: 'LinceRapido77' });
+    const respostas = await Promise.all(Array.from({ length: 30 }, (_, i) => entrar(cliente.novoNavegador(), 'LinceRapido77', `errada-${i}-xyz`)));
+    const por = (s: number) => respostas.filter(r => r.status === s).length;
+    expect(por(401)).toBeLessThanOrEqual(3);
+    expect(por(401) + por(428) + por(429)).toBe(30);
+    expect(por(428)).toBe(7); // tentativas 4..10 pedem desafio; da 11ª em diante é 429
+    expect(por(429)).toBe(20);
+
+    // com Turnstile válido, a rajada também para em 10 verificações (o resto 429), mesmo vinda de IPs diferentes
+    const c2 = criarContexto();
+    await semearUsuario({ apelido: 'LinceRapido78' });
+    const com = await Promise.all(Array.from({ length: 30 }, (_, i) => entrar(c2.cliente.novoNavegador(), 'LinceRapido78', `errada-${i}-xyz`, { turnstileToken: 'ok' })));
+    expect(com.filter(r => r.status === 401).length).toBeLessThanOrEqual(10);
+    expect(com.filter(r => r.status === 429).length).toBeGreaterThanOrEqual(20);
+    // a senha certa também fica barrada durante o bloqueio
+    expect((await entrar(c2.cliente, 'LinceRapido78', SENHA_TESTE, { turnstileToken: 'ok' })).status).toBe(429);
+  });
+
   it('login bem-sucedido zera o contador da conta', async () => {
     const { cliente } = criarContexto();
     await semearUsuario({ apelido: 'CoalaSereno55' });

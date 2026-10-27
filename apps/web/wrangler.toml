@@ -5,8 +5,9 @@
 
 name = "aprende-mais-web-dev"
 compatibility_date = "2026-09-29"
-workers_dev = true
-preview_urls = true
+# Topo = DEV só local: sem URL pública (PEN-056).
+workers_dev = false
+preview_urls = false
 
 [assets]
 directory = "./dist"

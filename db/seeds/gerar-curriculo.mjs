@@ -21,7 +21,7 @@ const etapas = cur.etapas;
 const etapaIds = new Set(etapas.map((e) => e.id));
 
 // ano escolar: EF1/EF2 + ano -> 'EF5'; EM + ano -> 'EM1'
-const anos = etapas.flatMap((e, i) =>
+const anos = etapas.flatMap((e) =>
   e.anos.map((a) => ({ codigo: `${e.id === 'EM' ? 'EM' : 'EF'}${a.id}`, etapa: e.id, ano: a.id, rotulo: a.rotulo })));
 const anoCodigos = new Set(anos.map((a) => a.codigo));
 if (anoCodigos.size !== anos.length) falha('anos_escolares duplicados em disciplinas.json');

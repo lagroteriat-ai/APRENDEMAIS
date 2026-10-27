@@ -117,6 +117,8 @@ export function criarApp(overrides: Partial<Deps> = {}): Hono<AppEnv> {
   // Ferramenta de desenvolvimento (fora do contrato): lê a "caixa de saída" de e-mails. Só existe com ENVIRONMENT=dev.
   api.get('/dev/outbox', async c => {
     if (c.env.ENVIRONMENT !== 'dev') throw new ErroApp('NOT_FOUND');
+    // PEN-056/F-06: mesmo em dev, só loopback (a Cloudflare sempre injeta CF-Connecting-IP com o IP real do cliente)
+    if (c.var.ip && !['127.0.0.1', '::1'].includes(c.var.ip)) throw new ErroApp('NOT_FOUND');
     return ok(await new ProvedorEmailFake(c.env.KV).listar(c.req.query('para')));
   });
 

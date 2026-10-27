@@ -22,29 +22,31 @@
 ## Tarefas
 | ID | Esp. | Tarefa | Onda | Depende de | Modelo/esforço | Status |
 |---|---|---|---|---|---|---|
-| S1-BE-00 | BE | Hotfix da landing (PEN-001/003/006) | 0 | — | Sonnet / médio | ☐ |
-| S1-BE-01 | BE | ADR-001 arquitetura e convenções de API | 0 | — | Opus / alto | ☐ |
-| S1-SEG-01 | SEG | Requisitos LGPD/menores | 0 | — | Opus / alto | ☐ |
-| S1-UX-01 | UX | Fluxos e design tokens | 0 | — | Sonnet / médio | ☐ |
-| S1-QA-01 | QA | Estratégia de testes | 0 | — | Sonnet / baixo | ☐ |
-| S1-PED-01 | PED | Taxonomia BNCC/PE inicial | 0 | — | Sonnet / médio | ☐ |
+| S1-BE-00 | BE | Hotfix da landing (PEN-001/003/006) | 0 | — | Sonnet / médio | ☑ |
+| S1-BE-01 | BE | ADR-001 arquitetura e convenções de API | 0 | — | Opus / alto | ☑ |
+| S1-SEG-01 | SEG | Requisitos LGPD/menores | 0 | — | Opus / alto | ☑ |
+| S1-UX-01 | UX | Fluxos e design tokens | 0 | — | Sonnet / médio | ☑ |
+| S1-QA-01 | QA | Estratégia de testes | 0 | — | Sonnet / baixo | ☑ |
+| S1-PED-01 | PED | Taxonomia BNCC/PE inicial | 0 | — | Sonnet / médio | ☑ |
 | S1-DEV-01 | DEV | Monorepo, CI/CD, ambientes | 1 | BE-01 | Sonnet / médio | ☑ |
 | S1-DAD-01 | DAD | Schema D1 base + migrations | 1 | BE-01, SEG-01 | Sonnet / alto | ☑ |
-| S1-BE-02 | BE | Contrato OpenAPI de auth/consentimento | 1 | BE-01, SEG-01 | Sonnet / médio | ☐ |
+| S1-BE-02 | BE | Contrato OpenAPI de auth/consentimento | 1 | BE-01, SEG-01 | Sonnet / médio | ☑ |
 | S1-FE-01 | FE | Design system base | 1 | UX-01, BE-01 | Sonnet / médio | ☑ |
-| S1-SEG-02 | SEG | Threat model | 1 | BE-01, SEG-01 | Opus / alto | ☐ |
-| S1-BE-03 | BE | Auth, sessões e papéis | 2 | DEV-01, DAD-01, BE-02 | Sonnet / alto | ☐ |
-| S1-BE-04 | BE | API de consentimento parental | 2 | DEV-01, DAD-01, BE-02 | Sonnet / médio | ☐ |
-| S1-BE-05 | BE | Migrar landing de Pages Functions para Worker + Static Assets (ADR-002) | 1 | BE-01 (coordena com DEV-01 em paralelo) | Sonnet / médio | ☐ |
+| S1-SEG-02 | SEG | Threat model | 1 | BE-01, SEG-01 | Opus / alto | ☑ |
+| S1-BE-03 | BE | Auth, sessões e papéis | 2 | DEV-01, DAD-01, BE-02 | Sonnet / alto | ☑ |
+| S1-BE-04 | BE | API de consentimento parental | 2 | DEV-01, DAD-01, BE-02 | Sonnet / médio | ☑ |
+| S1-BE-05 | BE | Migrar landing de Pages Functions para Worker + Static Assets (ADR-002) | 1 | BE-01 (coordena com DEV-01 em paralelo) | Sonnet / médio | ☑ |
 | S1-FE-02 | FE | Telas login/cadastro/consentimento | 2 | FE-01, BE-02 (mock) | Sonnet / médio | ☑ |
 | S1-DAD-02 | DAD | UNIQUE de leads + seed da taxonomia | 2 | DAD-01, PED-01 | Haiku-Sonnet / baixo | ☑ |
-| S1-SEG-03 | SEG | Turnstile + rate limit na landing | 2 | DEV-01, BE-05 | Sonnet / médio | ☐ |
-| S1-PED-02 | PED | Linguagem de consentimento/privacidade | 2 | SEG-01 | Sonnet / baixo | ☐ |
-| S1-QA-02 | QA | Base de testes automatizados | 2 | QA-01, DEV-01 | Sonnet / médio | ☐ |
+| S1-SEG-03 | SEG | Turnstile + rate limit na landing | 2 | DEV-01, BE-05 | Sonnet / médio | ☑ |
+| S1-PED-02 | PED | Linguagem de consentimento/privacidade | 2 | SEG-01 | Sonnet / baixo | ☑ |
+| S1-QA-02 | QA | Base de testes automatizados | 2 | QA-01, DEV-01 | Sonnet / médio | ☑ |
 | S1-QA-03 | QA | E2E cadastro → consentimento → login | 3 | BE-03, BE-04, FE-02 | Sonnet / médio | ☑ |
-| S1-SEG-04 | SEG | Revisão de segurança do auth | 3 | BE-03, BE-04, SEG-03 | Opus / alto | ☐ |
-| S1-UX-02 | UX | Revisão UX/acessibilidade | 3 | FE-02 | Sonnet / baixo | ☐ |
-| S1-DEV-02 | DEV | Staging e runbook | 3 | DEV-01, BE-03 | Sonnet / médio | ☐ |
+| S1-SEG-04 | SEG | Revisão de segurança do auth | 3 | BE-03, BE-04, SEG-03 | Opus / alto | ☑ |
+| S1-UX-02 | UX | Revisão UX/acessibilidade | 3 | FE-02 | Sonnet / baixo | ☑ |
+| S1-DEV-02 | DEV | Staging e runbook | 3 | DEV-01, BE-03 | Sonnet / médio | ◐ (runbook/Workers Builds/PEN-056/039 ☑; staging pendente de ação humana, ver ambientes.md §8) |
+
+**Status (2026-10-26):** Ondas 0–2 e QA-03/SEG-04/UX-02 ☑. ◐ = arquivo entregue, sem handoff/validação (DEV-02). PED-02 ☑ em 2026-10-26 (texto pronto; publicação depende de ⚖ e dos PEDIDOs PEN-044/049). **Bloqueio ativo:** F-01 (BE, contagem atômica de falhas de login) — ver COMUNICACAO.md §3.
 
 **Caminho crítico:** BE-01 → DAD-01 → BE-03 → QA-03. Priorize essas tarefas.
 **Estrutura provisória de pastas** (confirmada/ajustada em ADR-001): `apps/api`, `apps/web`, `packages/ui`, `packages/shared-types`, `db/`, `data/`, `docs/`, `tests/`. A landing e o `functions/` atuais ficam na raiz até a v1.0.

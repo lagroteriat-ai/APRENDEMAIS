@@ -11,8 +11,9 @@
 name = "aprende-mais-dev"
 main = "legacy/worker.js"
 compatibility_date = "2026-09-29"
-workers_dev = true
-preview_urls = true
+# Topo = DEV só local: sem URL pública (PEN-056).
+workers_dev = false
+preview_urls = false
 
 [build]
 command = "node scripts/build-legacy.mjs"
@@ -45,7 +46,7 @@ run_worker_first = ["/api/*"]
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "APRENDEMAIS_LEADS_STAGING"
-database_id = "COLOQUE_ID_D1_LEGADO_STAGING"
+database_id = "491b37bc-4588-48e1-a74d-c60681f0d060"
 migrations_dir = "migrations"
 
 [[env.staging.ratelimits]]

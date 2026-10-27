@@ -51,7 +51,13 @@ Fluxo: o visitante preenche o formulário → `POST /api/leads` valida e grava (
 em `script.js`). O painel `/admin.html` usa `ADMIN_TOKEN` (`GET`/`DELETE /api/admin/leads`); em produção, considere
 também o Cloudflare Access.
 
-O Worker (`legacy/worker.js`) recebe só `/api/*` (`assets.run_worker_first`) e responde 404/405 em JSON; o resto sai direto de `dist-legacy/`,\nque o `[build]` do `wrangler.toml` regenera a cada `wrangler dev` / `wrangler deploy` (também no Workers Builds, que só roda `npx wrangler deploy`).\nBindings e secrets vêm do `wrangler` (D1 `DB`, `RATE_LIMITER`; `ADMIN_TOKEN`, `LEAD_SECRET`, `TURNSTILE_SECRET` via `wrangler secret put`) — não há mais Pages.\nDefina `TURNSTILE_SITEKEY` (chave pública do widget) no ambiente do build, senão vale a chave de teste e o cadastro não passa em produção.\n\nLocal: `pnpm dev:legacy` (crie `.dev.vars` com os três secrets e rode `wrangler d1 migrations apply DB --local` uma vez).\nValidação completa com `wrangler dev` de verdade: `pnpm smoke:legado` (estáticos, cadastro, prototype-access, painel e o que NÃO é servido).
+O Worker (`legacy/worker.js`) recebe só `/api/*` (`assets.run_worker_first`) e responde 404/405 em JSON; o resto sai direto de `dist-legacy/`,
+que o `[build]` do `wrangler.toml` regenera a cada `wrangler dev` / `wrangler deploy` (também no Workers Builds, que só roda `npx wrangler deploy`).
+Bindings e secrets vêm do `wrangler` (D1 `DB`, `RATE_LIMITER`; `ADMIN_TOKEN`, `LEAD_SECRET`, `TURNSTILE_SECRET` via `wrangler secret put`) — não há mais Pages.
+Defina `TURNSTILE_SITEKEY` (chave pública do widget) no ambiente do build, senão vale a chave de teste e o cadastro não passa em produção.
+
+Local: `pnpm dev:legacy` (crie `.dev.vars` com os três secrets e rode `wrangler d1 migrations apply DB --local` uma vez).
+Validação completa com `wrangler dev` de verdade: `pnpm smoke:legado` (estáticos, cadastro, prototype-access, painel e o que NÃO é servido).
 
 ## Privacidade (LGPD)
 O Aprende+ pode envolver menores de idade: colete só o necessário e mantenha o aviso de privacidade publicado. O

@@ -13,8 +13,8 @@ const PREFIXO_CAIXA = 'outbox:';
 const TTL_CAIXA_SEG = 3600;
 
 /**
- * Implementação falsa para dev/teste/staging: não envia nada, grava a mensagem (com o link e o token) numa "caixa de saída"
- * no KV por 1 h. Em dev o endpoint `GET /api/v1/dev/outbox` a expõe; nunca é usada em produção.
+ * Implementação falsa só para dev/teste: não envia nada, grava a mensagem (com o link e o token) numa "caixa de saída"
+ * no KV por 1 h. Em dev o endpoint `GET /api/v1/dev/outbox` a expõe; nunca é usada em staging nem produção.
  */
 export class ProvedorEmailFake implements ProvedorEmail {
   constructor(private readonly kv: KVNamespace) {}
@@ -43,6 +43,7 @@ export class ProvedorEmailNaoConfigurado implements ProvedorEmail {
   }
 }
 
+/** Falha fechada (PEN-056): o falso só existe em `dev` (que inclui os testes); staging, produção e qualquer valor inesperado usam o real. */
 export function criarProvedorEmail(env: Env): ProvedorEmail {
-  return env.ENVIRONMENT === 'production' ? new ProvedorEmailNaoConfigurado() : new ProvedorEmailFake(env.KV);
+  return env.ENVIRONMENT === 'dev' ? new ProvedorEmailFake(env.KV) : new ProvedorEmailNaoConfigurado();
 }

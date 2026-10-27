@@ -102,9 +102,7 @@ test.describe('tempo de resposta não distingue conta existente de inexistente (
 });
 
 test.describe('concorrência no login (SR-09)', () => {
-  // Falha esperada até a correção: ao corrigir, o Playwright acusa "esperava falhar e passou" → remover o `test.fail`.
   test('F-01: 30 logins errados em paralelo contra a mesma conta não passam do limite', async ({ novoCliente }) => {
-    test.fail(true, 'BLOQUEIO F-01 (COMUNICACAO §3): a contagem de falhas só é gravada depois do hash; as 30 requisições passam sem Turnstile');
     // O D1 local às vezes devolve 5xx sob rajada ("Failed to get session commit token"). Resposta 5xx não é 401 nem 428/429 e
     // faria o teste concluir errado; por isso repete com conta nova e, se não houver rajada limpa, pula em vez de concluir.
     let porStatus: Record<number, number> | undefined;

@@ -32,10 +32,10 @@ describe('ProvedorEmailNaoConfigurado (produção sem provedor)', () => {
 });
 
 describe('criarProvedorEmail', () => {
-  it('produção usa o provedor real (ainda não configurado); os demais ambientes usam o falso', () => {
-    expect(criarProvedorEmail({ ...env, ENVIRONMENT: 'production' } as typeof env)).toBeInstanceOf(ProvedorEmailNaoConfigurado);
-    for (const ambiente of ['dev', 'staging'] as const) {
-      expect(criarProvedorEmail({ ...env, ENVIRONMENT: ambiente } as typeof env)).toBeInstanceOf(ProvedorEmailFake);
+  it('só dev usa o falso; staging, produção e valor ausente/inesperado usam o real (falha fechada, PEN-056)', () => {
+    expect(criarProvedorEmail({ ...env, ENVIRONMENT: 'dev' } as typeof env)).toBeInstanceOf(ProvedorEmailFake);
+    for (const ambiente of ['staging', 'production', undefined, 'qualquer'] as const) {
+      expect(criarProvedorEmail({ ...env, ENVIRONMENT: ambiente } as unknown as typeof env)).toBeInstanceOf(ProvedorEmailNaoConfigurado);
     }
   });
 });

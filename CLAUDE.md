@@ -20,8 +20,8 @@ Landing page de captação de leads do **Aprende+** (plataforma educacional, pú
 | `legacy/lib/seguranca.js`, `legacy/lib/protecao.js` | Comparação em tempo constante, HMAC do `accessToken` (`LEAD_SECRET`), Turnstile e rate limit do cadastro |
 | `schema.sql`, `migrations/*.sql` | D1 **legado** (`leads`): `schema.sql` = estado atual p/ banco novo; `migrations/0001_leads_inicial.sql`+`0002_leads_email_unico.sql` = o que o wrangler aplica (a subpasta `0001_initial/` é ignorada por ele). D1 da plataforma: `db/migrations/` + `db/seeds/` (ver `docs/dados/migrar.md`) |
 | `wrangler.toml` | Worker da landing por ambiente (dev/staging/prod); IDs `COLOQUE_*` são placeholders (PEN-002) |
-| `apps/*/wrangler.toml`, `.github/workflows/` | Workers da API e da SPA; CI, preview por PR e deploy |
-| `scripts/` | `build-legacy.mjs` (gera `dist-legacy/`), `verificar-dist.mjs`, `check-placeholders.mjs` |
+| `apps/*/wrangler.toml`, `.github/workflows/` | Workers da API e da SPA; CI (único workflow; o deploy é do Workers Builds) |
+| `scripts/` | `build-legacy.mjs` (gera `dist-legacy/`), `verificar-dist.mjs`, `check-placeholders.mjs`, `deploy.mjs` (comando do Workers Builds), `check-wrangler.mjs` |
 | `README.md`, `docs/devops/ambientes.md` | README único; recursos, secrets, CI/CD e migrations |
 
 ## Fluxo
@@ -46,11 +46,11 @@ Landing page de captação de leads do **Aprende+** (plataforma educacional, pú
 Objetivo: plataforma educacional de atividades gamificadas (BNCC/PE) com interfaces de aluno e professor e rankings. Trabalho por sprints, com especialistas em sessões independentes (reiniciadas a cada sprint).
 - `BACKLOG.md` — versões v0.1 → v1.0 (ler só o item da tarefa).
 - `ESPECIALISTAS.md` — papéis, regras de convivência e de economia de tokens, prompt-base.
-- `sprints/SPRINT-NN.md` — tarefas, ondas (paralelismo) e prompts. Sprint atual: **01 (v0.1 Fundação)**.
+- `sprints/SPRINT-NN.md` — tarefas, ondas (paralelismo) e prompts. Sprint atual: **02 (v0.2 Núcleo do aluno)**; a 01 está concluída, restando só ações humanas (PEN-002/033/034/047/048).
 - `COMUNICACAO.md` — mensagens, contratos, handoffs, bloqueios. `PENDENCIAS.md` — fila de pendências. `DECISOES.md` — ADRs.
 - A landing/leads descrita acima continua em produção até a v1.0.
 
 ## Como rodar
 - Requer Node 22+ e pnpm 12 (`corepack enable`). `pnpm install` · `pnpm dev` (API :8787 + SPA :5173) · `pnpm test` · `pnpm test:e2e:acesso` (E2E de cadastro/consentimento/login; ver `docs/qa/convencoes.md`) · `pnpm build` · `pnpm lint` · `pnpm typecheck` · `pnpm check:wrangler`.
 - Landing legada: `pnpm dev:legacy` (precisa de `.dev.vars` e de `wrangler d1 migrations apply DB --local` uma vez); `pnpm smoke:legado` valida tudo com `wrangler dev` de verdade.
-- Deploy: só via GitHub Actions (`deploy.yml`: tag `v*` ou manual) com `wrangler deploy --env <amb>`; preview por PR em `preview.yml`. Detalhes: `docs/devops/ambientes.md`.
+- Deploy: 100% **Workers Builds** (sem GitHub Actions de deploy; `ci.yml` só verifica). `main` → staging, branch `producao` → produção, PR → Preview URL. O comando é sempre `node scripts/deploy.mjs <staging|production>`, que recusa deploy sem `--env` (o topo do `wrangler.toml` é DEV, `workers_dev=false`). Runbook: `docs/devops/runbook.md`; setup e passos humanos pendentes: `docs/devops/ambientes.md` §4 e §8.

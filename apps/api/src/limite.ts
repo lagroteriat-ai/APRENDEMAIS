@@ -22,6 +22,10 @@ export function consultar(env: Env, agoraMs: number, nome: string, chave: string
   return limitador(env, nome, chave).consultar(agoraMs);
 }
 
+export function devolver(env: Env, agoraMs: number, nome: string, chave: string): Promise<void> {
+  return limitador(env, nome, chave).devolver(agoraMs);
+}
+
 export function zerar(env: Env, nome: string, chave: string): Promise<void> {
   return limitador(env, nome, chave).zerar();
 }

@@ -22,7 +22,7 @@
     "test:e2e:install": "playwright install --with-deps chromium",
     "build:legacy": "node scripts/build-legacy.mjs",
     "build": "pnpm build:legacy && pnpm -r --if-present run build && node scripts/verificar-dist.mjs",
-    "check:wrangler": "pnpm build:legacy && wrangler deploy --dry-run --outdir .wrangler/dry --env staging && wrangler deploy --dry-run --outdir .wrangler/dry --env production && pnpm -r --if-present run check:wrangler",
+    "check:wrangler": "node scripts/check-wrangler.mjs && pnpm build:legacy && wrangler deploy --dry-run --outdir .wrangler/dry --env staging && wrangler deploy --dry-run --outdir .wrangler/dry --env production && pnpm -r --if-present run check:wrangler",
     "check:placeholders": "node scripts/check-placeholders.mjs"
   },
   "devDependencies": {

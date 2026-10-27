@@ -1,10 +1,12 @@
 name: CI
 
+# Só verificação. Deploy e Preview URLs são do Workers Builds (docs/devops/ambientes.md §4); o Workers Builds
+# não espera este CI, então proteja `main` e `producao` exigindo o job "lint · typecheck · test · build".
+
 on:
   pull_request:
   push:
     branches: [main]
-  workflow_call: # reutilizado por deploy.yml
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -46,6 +48,13 @@ jobs:
       - run: pnpm check:wrangler
       # Worker da landing de verdade (wrangler dev + D1 local): API, painel e "docs/ e apps/ não são servidos" (SR-21).
       - run: pnpm smoke:legado
+      # PEN-039: seed em dia com data/curriculo/ e schema da plataforma do zero (migrations + seed) num D1 local.
+      - run: node db/seeds/gerar-curriculo.mjs --check
+      - name: Migrations + seed do zero (D1 local)
+        working-directory: apps/api
+        run: |
+          pnpm exec wrangler d1 migrations apply DB --local
+          pnpm exec wrangler d1 execute DB --local --file ../../db/seeds/curriculo.sql
 
   e2e:
     name: e2e (Playwright · Chromium)

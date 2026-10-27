@@ -8,8 +8,9 @@
 name = "aprende-mais-api-dev"
 main = "src/index.ts"
 compatibility_date = "2026-09-29"
-workers_dev = true
-preview_urls = true
+# Topo = DEV só local: sem URL pública (PEN-056). Um deploy sem --env não expõe o Worker (com ENVIRONMENT=dev e e-mail falso).
+workers_dev = false
+preview_urls = false
 
 [vars]
 ENVIRONMENT = "dev"
@@ -55,7 +56,7 @@ preview_urls = true
 [env.staging.vars]
 ENVIRONMENT = "staging"
 ALLOWED_ORIGINS = ""
-APP_BASE_URL = "COLOQUE_URL_APP_STAGING"
+APP_BASE_URL = "https://aprende-mais-web-staging.lagroteriat.workers.dev"
 TURNSTILE_OBRIGATORIO = "true"
 
 [[env.staging.durable_objects.bindings]]
@@ -72,12 +73,12 @@ crons = ["17 3 * * *"]
 [[env.staging.d1_databases]]
 binding = "DB"
 database_name = "aprendemais-staging"
-database_id = "COLOQUE_ID_D1_API_STAGING"
+database_id = "b705cc1e-ff06-4e73-94ab-03b3e0f4211a"
 migrations_dir = "../../db/migrations"
 
 [[env.staging.kv_namespaces]]
 binding = "KV"
-id = "COLOQUE_ID_KV_API_STAGING"
+id = "8d0e5260891e460aa7962d4564651387"
 
 [[env.staging.r2_buckets]]
 binding = "R2"
